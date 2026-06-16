@@ -1,0 +1,162 @@
+{
+  "vaultName": "Demo Personal Vault",
+  "lastModified": "2026-06-15T06:07:21.000Z",
+  "groups": [
+    {
+      "id": "group-personal",
+      "name": "Personal",
+      "icon": "user"
+    },
+    {
+      "id": "group-work",
+      "name": "Work",
+      "icon": "briefcase"
+    },
+    {
+      "id": "group-finance",
+      "name": "Finance",
+      "icon": "wallet"
+    },
+    {
+      "id": "group-social",
+      "name": "Social Media",
+      "icon": "share2"
+    }
+  ],
+  "entries": [
+    {
+      "id": "entry-google",
+      "groupId": "group-personal",
+      "title": "Google Account",
+      "username": "alex.doe@gmail.com",
+      "password": "gP$8wQ!Lm6Zt_Xy9",
+      "url": "https://accounts.google.com",
+      "notes": "Primary email and account used for personal communication and Android phone sync.",
+      "tags": ["email", "critical", "google"],
+      "otpSecret": "JBSWY3DPEHPK3PXP",
+      "customFields": [
+        {"name": "Backup Codes Location", "value": "Stored printed in safe"},
+        {"name": "Recovery Phone", "value": "+1 (555) 019-2834"}
+      ],
+      "created": "2026-01-10T12:00:00.000Z",
+      "modified": "2026-06-14T08:30:00.000Z"
+    },
+    {
+      "id": "entry-github",
+      "groupId": "group-work",
+      "title": "GitHub Enterprise",
+      "username": "alex-work-dev",
+      "password": "fK9#mN2&vX8_pL5q",
+      "url": "https://github.com",
+      "notes": "Work GitHub account used for developer repositories and CI/CD pipelines.",
+      "tags": ["developer", "work", "git"],
+      "otpSecret": "NBSWY3DPEHPK3PXP",
+      "customFields": [
+        {"name": "SSH Key Fingerprint", "value": "SHA256:u1YfSgY8v6yP..."},
+        {"name": "Organization", "value": "AcmeCorpDev"}
+      ],
+      "created": "2026-02-14T09:15:00.000Z",
+      "modified": "2026-05-20T14:45:00.000Z"
+    },
+    {
+      "id": "entry-bank",
+      "groupId": "group-finance",
+      "title": "Chase Online Banking",
+      "username": "alex_chase_99",
+      "password": "vY3$zC7*bN1_mK8p",
+      "url": "https://www.chase.com",
+      "notes": "Personal checking and savings account manager.",
+      "tags": ["money", "finance", "banking"],
+      "otpSecret": "KBSWY3DPEHPK3PXP",
+      "customFields": [
+        {"name": "Account Number", "value": "******4829"},
+        {"name": "Routing Number", "value": "021000021"},
+        {"name": "ATM PIN", "value": "1840"}
+      ],
+      "created": "2026-01-05T10:30:00.000Z",
+      "modified": "2026-06-11T16:20:00.000Z"
+    },
+    {
+      "id": "entry-netflix",
+      "groupId": "group-personal",
+      "title": "Netflix",
+      "username": "alex-streaming@outlook.com",
+      "password": "watch✨Flix2026!",
+      "url": "https://www.netflix.com",
+      "notes": "Shared household streaming account. Premium plan.",
+      "tags": ["entertainment", "shared", "streaming"],
+      "otpSecret": "",
+      "customFields": [
+        {"name": "Billing Cycle", "value": "15th of every month"},
+        {"name": "Profile PIN", "value": "9021"}
+      ],
+      "created": "2026-03-01T15:40:00.000Z",
+      "modified": "2026-03-01T15:40:00.000Z"
+    },
+    {
+      "id": "entry-slack",
+      "groupId": "group-work",
+      "title": "Slack Workspace",
+      "username": "alex.doe@acme.com",
+      "password": "sL4ck_w0rkP@ss_2026",
+      "url": "https://acme-workspace.slack.com",
+      "notes": "Company Slack workspace credentials.",
+      "tags": ["work", "chat", "communications"],
+      "otpSecret": "MBSWY3DPEHPK3PXP",
+      "customFields": [
+        {"name": "Workspace ID", "value": "T01234567"}
+      ],
+      "created": "2026-02-15T08:00:00.000Z",
+      "modified": "2026-06-01T09:10:00.000Z"
+    },
+    {
+      "id": "entry-paypal",
+      "groupId": "group-finance",
+      "title": "PayPal Account",
+      "username": "alex.payments@gmail.com",
+      "password": "pAyPaL_S4f3_K3y!",
+      "url": "https://www.paypal.com",
+      "notes": "Used for online purchases and secure vendor payments.",
+      "tags": ["finance", "payments"],
+      "otpSecret": "OBSWY3DPEHPK3PXP",
+      "customFields": [
+        {"name": "Linked Card", "value": "Visa ending in 9876"}
+      ],
+      "created": "2026-01-20T11:25:00.000Z",
+      "modified": "2026-04-12T13:14:00.000Z"
+    },
+    {
+      "id": "entry-twitter",
+      "groupId": "group-social",
+      "title": "X (formerly Twitter)",
+      "username": "@alex_dev_mind",
+      "password": "bI4ck_b1rd_fIy",
+      "url": "https://x.com",
+      "notes": "Personal social account for tech topics and blogging.",
+      "tags": ["social", "personal", "public"],
+      "otpSecret": "",
+      "customFields": [
+        {"name": "Followers Count", "value": "1.2k"}
+      ],
+      "created": "2026-02-28T18:00:00.000Z",
+      "modified": "2026-02-28T18:00:00.000Z"
+    },
+    {
+      "id": "entry-aws",
+      "groupId": "group-work",
+      "title": "AWS Console (Admin)",
+      "username": "AcmeAdminAlex",
+      "password": "aWs_c0ns0l3_P@ssw0rd_99!",
+      "url": "https://aws.amazon.com/console",
+      "notes": "AWS IAM admin console for development environments.",
+      "tags": ["cloud", "work", "admin", "devops"],
+      "otpSecret": "PBSWY3DPEHPK3PXP",
+      "customFields": [
+        {"name": "AWS Account ID", "value": "1234-5678-9012"},
+        {"name": "Region", "value": "us-east-1"}
+      ],
+      "created": "2026-03-10T14:00:00.000Z",
+      "modified": "2026-06-12T10:11:00.000Z"
+    }
+  ]
+}

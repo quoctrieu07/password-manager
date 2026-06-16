@@ -1,0 +1,6 @@
+{
+  "name": "Password Manager",
+  "description": "A secure, offline-safe password manager with local JSON vault support, featuring a serene Natural Tones design theme.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
