@@ -30,3 +30,4 @@ The workspace uses Vite to bundle the static source. The core system runs in `/s
    ```bash
    npm run build
    ```
+3. Open `index.html` directly in any web browser to run 100% locally from file.

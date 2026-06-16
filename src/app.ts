@@ -43,6 +43,122 @@ interface VaultData {
   entries: Entry[];
 }
 
+// HELPER FUNCTIONS FOR AES-256 GCM ENCRYPTION/DECRYPTION
+function bufToHex(buf: Uint8Array): string {
+  return Array.from(buf).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function hexToBuf(hex: string): Uint8Array {
+  const bytes = [];
+  for (let c = 0; c < hex.length; c += 2) {
+    bytes.push(parseInt(hex.substring(c, 2), 16));
+  }
+  return new Uint8Array(bytes);
+}
+
+function strToBuf(str: string): Uint8Array {
+  return new TextEncoder().encode(str);
+}
+
+function bufToStr(buf: Uint8Array): string {
+  return new TextDecoder().decode(buf);
+}
+
+async function deriveKeyGCM(password: string, salt: Uint8Array): Promise<CryptoKey> {
+  const enc = new TextEncoder();
+  const keyMaterial = await window.crypto.subtle.importKey(
+    "raw",
+    enc.encode(password),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits", "deriveKey"]
+  );
+  return window.crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 100000,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+async function encryptDataGCM(dataStr: string, password: string): Promise<{ ciphertextHex: string; ivHex: string; saltHex: string }> {
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKeyGCM(password, salt);
+  const ciphertextBuffer = await window.crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: iv },
+    key,
+    strToBuf(dataStr)
+  );
+  return {
+    ciphertextHex: bufToHex(new Uint8Array(ciphertextBuffer)),
+    ivHex: bufToHex(iv),
+    saltHex: bufToHex(salt)
+  };
+}
+
+async function decryptDataGCM(ciphertextHex: string, ivHex: string, saltHex: string, password: string): Promise<string> {
+  const salt = hexToBuf(saltHex);
+  const iv = hexToBuf(ivHex);
+  const ciphertext = hexToBuf(ciphertextHex);
+  const key = await deriveKeyGCM(password, salt);
+  const decryptedBuffer = await window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: iv },
+    key,
+    ciphertext
+  );
+  return bufToStr(new Uint8Array(decryptedBuffer));
+}
+
+// COLOR BLENDING AND BRIGHTNESS HELPER FUNCTIONS
+function rgbToHex(r: number, g: number, b: number): string {
+  const clamp = (val: number) => Math.max(0, Math.min(255, val));
+  return "#" + [clamp(r), clamp(g), clamp(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+
+function adjustColorBrightness(hex: string, percent: number): string {
+  let raw = hex.replace("#", "");
+  if (raw.length === 3) {
+    raw = raw.split("").map(c => c + c).join("");
+  }
+  let r = parseInt(raw.substring(0, 2), 16);
+  let g = parseInt(raw.substring(2, 4), 16);
+  let b = parseInt(raw.substring(4, 6), 16);
+
+  r = Math.round(r + (percent / 100) * 255);
+  g = Math.round(g + (percent / 100) * 255);
+  b = Math.round(b + (percent / 100) * 255);
+
+  return rgbToHex(r, g, b);
+}
+
+function blendColor(color1: string, color2: string, weight: number): string {
+  let c1 = color1.replace("#", "");
+  let c2 = color2.replace("#", "");
+  if (c1.length === 3) c1 = c1.split("").map(c => c + c).join("");
+  if (c2.length === 3) c2 = c2.split("").map(c => c + c).join("");
+
+  const r1 = parseInt(c1.substring(0, 2), 16);
+  const g1 = parseInt(c1.substring(2, 4), 16);
+  const b1 = parseInt(c1.substring(4, 6), 16);
+
+  const r2 = parseInt(c2.substring(0, 2), 16);
+  const g2 = parseInt(c2.substring(2, 4), 16);
+  const b2 = parseInt(c2.substring(4, 6), 16);
+
+  const r = Math.round(r1 * (1 - weight) + r2 * weight);
+  const g = Math.round(g1 * (1 - weight) + g2 * weight);
+  const b = Math.round(b1 * (1 - weight) + b2 * weight);
+
+  return rgbToHex(r, g, b);
+}
+
 // 1. DYNAMIC TRANSLATION SYSTEM
 // Removed embedded dictionary for modular public/translations/*.json resource loading.
 
@@ -205,6 +321,14 @@ class AppManager {
   private theme: "light" | "dark" = "light";
   private loadedTranslations: Record<string, Record<string, string>> = {};
 
+  // Encryption & Settings states
+  private hasUnsavedChanges: boolean = false;
+  private activeMobileView: "sidebar" | "list" | "details" = "list";
+  private autoLockMinutes: number = 0; // 0 = Never
+  private autoLockTimer: any = null;
+  private masterPassword = "";
+  private encrypted = false;
+
   // States
   private isEditingEntry: boolean = false;
   private editEntryState: Entry | null = null;
@@ -212,6 +336,11 @@ class AppManager {
   constructor() {
     this.initLocale().then(() => {
       this.initTheme();
+      // Restore dynamic brand accent colors on load
+      const savedBrandHex = localStorage.getItem("kw_md_theme_brand_hex") || "#006B5D";
+      const savedBrandSource = localStorage.getItem("kw_md_theme_brand_source") || "presets";
+      this.applyThemeColor(savedBrandHex, savedBrandSource);
+
       this.bindEvents();
       this.loadHistory();
       this.hideInitSpinner();
@@ -323,6 +452,11 @@ class AppManager {
     } else {
       html.classList.remove("dark");
     }
+
+    // Refresh dynamic theme properties
+    const savedBrandHex = localStorage.getItem("kw_md_theme_brand_hex") || "#006B5D";
+    const savedBrandSource = localStorage.getItem("kw_md_theme_brand_source") || "presets";
+    this.applyThemeColor(savedBrandHex, savedBrandSource);
   }
 
   private toggleTheme() {
@@ -339,6 +473,20 @@ class AppManager {
   }
 
   // 7. FILE STUFF & VAULT MANAGEMENT
+  private async getEncryptedVaultPayload(vault: VaultData): Promise<any> {
+    if (this.encrypted && this.masterPassword) {
+      const encryptedObj = await encryptDataGCM(JSON.stringify(vault), this.masterPassword);
+      return {
+        encrypted: true,
+        ciphertext: encryptedObj.ciphertextHex,
+        iv: encryptedObj.ivHex,
+        salt: encryptedObj.saltHex,
+        vaultName: vault.vaultName
+      };
+    }
+    return vault;
+  }
+
   private loadHistory() {
     const list = document.getElementById("recent-vault-list");
     if (!list) return;
@@ -352,25 +500,24 @@ class AppManager {
     }
 
     try {
-      const histories = JSON.parse(historyJSON) as Array<{ name: string; timestamp: string; data: VaultData }>;
+      const histories = JSON.parse(historyJSON) as Array<{ name: string; timestamp: string; data: any }>;
       if (histories.length === 0) {
         list.innerHTML = `<p id="lbl-no-recent-vaults" class="text-xs text-slate-400 font-medium">${this.t("no_recent_vaults")}</p>`;
         return;
       }
 
-      histories.forEach((h, index) => {
+      histories.forEach((h) => {
         const item = document.createElement("button");
         item.className = "w-full text-left p-2.5 rounded-xl text-xs flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all font-medium text-slate-600 dark:text-slate-300";
         item.innerHTML = `
           <div class="flex items-center gap-2 truncate">
-            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-sky-500"></i>
+            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-sky-505"></i>
             <span class="font-bold truncate">${h.name}</span>
           </div>
           <span class="text-[10px] opacity-75 whitespace-nowrap">${new Date(h.timestamp).toLocaleDateString()}</span>
         `;
-        item.addEventListener("click", () => {
-          this.loadVaultData(h.data, h.name);
-          this.showToast(`Restored vault: ${h.name}`);
+        item.addEventListener("click", async () => {
+          await this.tryAndLoadAnyVault(h.data, h.name);
         });
         list.appendChild(item);
       });
@@ -381,17 +528,19 @@ class AppManager {
     }
   }
 
-  private saveHistory(name: string, data: VaultData) {
+  private async saveHistory(name: string, data: VaultData) {
     const key = "kw_password_vault_history";
-    let histories: Array<{ name: string; timestamp: string; data: VaultData }> = [];
+    let histories: Array<{ name: string; timestamp: string; data: any }> = [];
     try {
       const existing = localStorage.getItem(key);
       if (existing) histories = JSON.parse(existing);
     } catch {}
 
+    const payload = await this.getEncryptedVaultPayload(data);
+
     // Remove duplicates
     histories = histories.filter((h) => h.name !== name);
-    histories.unshift({ name, timestamp: new Date().toISOString(), data });
+    histories.unshift({ name, timestamp: new Date().toISOString(), data: payload });
 
     // Limit to top 5
     histories = histories.slice(0, 5);
@@ -430,19 +579,14 @@ class AppManager {
 
   private async loadSampleVault() {
     try {
-      // First try to fetch from external JSON
       const res = await fetch("./sample.json");
       if (res.ok) {
         const data = await res.json();
-        this.loadVaultData(data, data.vaultName || "Demo Personal Vault");
-        this.showToast("Sample loaded successfully!");
+        await this.tryAndLoadAnyVault(data, data.vaultName || "Demo Personal Vault");
         return;
       }
-    } catch {
-      // Fail gracefully: fallback to direct simulation
-    }
+    } catch {}
 
-    // Direct fallback if fetch is not working (e.g. running outside server)
     const fallbackSamples = {
       vaultName: "Demo Personal Vault",
       lastModified: new Date().toISOString(),
@@ -485,28 +629,118 @@ class AppManager {
           ],
           created: "2026-02-14T09:15:00.000Z",
           modified: "2026-05-20T14:45:00.000Z"
-        },
-        {
-          id: "entry-bank",
-          groupId: "group-finance",
-          title: "Chase Online Banking",
-          username: "alex_chase_99",
-          password: "vY3$zC7*bN1_mK8p",
-          url: "https://www.chase.com",
-          notes: "Personal checking and savings financial accounts.",
-          tags: ["money", "finance", "banking"],
-          otpSecret: "",
-          customFields: [
-            { name: "Account Number", value: "******4829" },
-            { name: "Routing Number", value: "021000021" }
-          ],
-          created: "2026-01-05T10:30:00.000Z",
-          modified: "2026-06-11T16:20:00.000Z"
         }
       ]
     };
     this.loadVaultData(fallbackSamples, "Demo Personal Vault");
     this.showToast("Loaded built-in offline sample vault");
+  }
+
+  private async tryAndLoadAnyVault(rawData: any, filename: string): Promise<boolean> {
+    if (rawData && rawData.encrypted === true) {
+      let success = false;
+      while (!success) {
+        const password = await this.promptForPassword();
+        if (password === null) {
+          return false;
+        }
+
+        try {
+          const decryptedStr = await decryptDataGCM(rawData.ciphertext, rawData.iv, rawData.salt, password);
+          const decryptedData = JSON.parse(decryptedStr);
+          this.masterPassword = password;
+          this.encrypted = true;
+          this.loadVaultData(decryptedData, rawData.vaultName || filename);
+          success = true;
+          this.showToast(`Successfully Decrypted & Loaded ${filename}`);
+        } catch (e) {
+          const errorLbl = document.getElementById("prompt-error-lbl");
+          if (errorLbl) errorLbl.classList.remove("hidden");
+          await new Promise(r => setTimeout(r, 600));
+        }
+      }
+      return true;
+    } else {
+      this.masterPassword = "";
+      this.encrypted = false;
+      this.loadVaultData(rawData, filename);
+      return true;
+    }
+  }
+
+  private promptForPassword(): Promise<string | null> {
+    const modal = document.getElementById("modal-password-prompt");
+    const container = modal?.querySelector(".relative");
+    const input = document.getElementById("prompt-password-input") as HTMLInputElement;
+    const errorLbl = document.getElementById("prompt-error-lbl");
+    const cancelBtn = document.getElementById("btn-password-prompt-cancel");
+    const submitBtn = document.getElementById("btn-password-prompt-submit");
+    const toggleBtn = document.getElementById("btn-toggle-prompt-password");
+
+    if (!modal || !container || !input) return Promise.resolve(null);
+
+    input.value = "";
+    if (errorLbl) errorLbl.classList.add("hidden");
+
+    modal.classList.remove("hidden");
+    setTimeout(() => {
+      container.classList.remove("scale-95", "opacity-0");
+      container.classList.add("scale-100", "opacity-100");
+      input.focus();
+    }, 20);
+
+    return new Promise((resolve) => {
+      let isResolved = false;
+
+      const finish = (value: string | null) => {
+        if (isResolved) return;
+        isResolved = true;
+
+        container.classList.remove("scale-100", "opacity-100");
+        container.classList.add("scale-95", "opacity-0");
+        setTimeout(() => {
+          modal.classList.add("hidden");
+        }, 200);
+
+        submitBtn?.removeEventListener("click", onSubmit);
+        cancelBtn?.removeEventListener("click", onCancel);
+        input.removeEventListener("keydown", onKeyDown);
+        toggleBtn?.removeEventListener("click", onToggle);
+
+        resolve(value);
+      };
+
+      const onSubmit = () => {
+        const val = input.value;
+        if (!val) return;
+        finish(val);
+      };
+
+      const onCancel = () => {
+        finish(null);
+      };
+
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Enter") {
+          onSubmit();
+        } else if (e.key === "Escape") {
+          onCancel();
+        }
+      };
+
+      const onToggle = () => {
+        if (input.type === "password") {
+          input.type = "text";
+        } else {
+          input.type = "password";
+        }
+      };
+
+      submitBtn?.addEventListener("click", onSubmit);
+      cancelBtn?.addEventListener("click", onCancel);
+      input.addEventListener("keydown", onKeyDown);
+      toggleBtn?.addEventListener("click", onToggle);
+    });
   }
 
   private loadVaultData(data: VaultData, filename: string) {
@@ -522,6 +756,7 @@ class AppManager {
     this.searchQuery = "";
     this.isEditingEntry = false;
     this.editEntryState = null;
+    this.hasUnsavedChanges = false;
 
     // Sync vault name in head input
     const nameInput = document.getElementById("vault-name-input") as HTMLInputElement;
@@ -533,6 +768,10 @@ class AppManager {
     // Swap screens
     document.getElementById("app-welcome")?.classList.add("hidden");
     document.getElementById("app-dashboard")?.classList.remove("hidden");
+
+    // Default to list view on wide, list on mobile
+    this.activeMobileView = "list";
+    this.updateMobileViewLayout();
 
     // Redraw UI
     this.renderSidebar();
@@ -548,11 +787,36 @@ class AppManager {
     this.saveHistory(name, this.vault);
   }
 
-  private saveAndDownloadVault() {
+  private async saveAndDownloadVault(forcePlain?: boolean, forceEncrypted?: boolean) {
     if (!this.vault) return;
     this.vault.lastModified = new Date().toISOString();
 
-    const dataString = JSON.stringify(this.vault, null, 2);
+    let payload: any;
+    if (forcePlain) {
+      payload = this.vault;
+    } else if (forceEncrypted) {
+      if (this.encrypted && this.masterPassword) {
+        payload = await this.getEncryptedVaultPayload(this.vault);
+      } else {
+        const password = await this.promptForPassword();
+        if (password === null) {
+          this.showToast("Export aborted: password is required for encrypted export.");
+          return;
+        }
+        const encryptedRes = await encryptDataGCM(JSON.stringify(this.vault), password);
+        payload = {
+          encrypted: true,
+          salt: encryptedRes.saltHex,
+          iv: encryptedRes.ivHex,
+          ciphertext: encryptedRes.ciphertextHex,
+          vaultName: this.vault.vaultName
+        };
+      }
+    } else {
+      payload = await this.getEncryptedVaultPayload(this.vault);
+    }
+
+    const dataString = JSON.stringify(payload, null, 2);
     const blob = new Blob([dataString], { type: "application/json" });
     const filename = `${this.vault.vaultName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-vault.json`;
 
@@ -563,7 +827,130 @@ class AppManager {
     URL.revokeObjectURL(a.href);
 
     this.showToast(this.t("status_saved"));
-    this.saveHistory(this.vault.vaultName, this.vault);
+    await this.saveHistory(this.vault.vaultName, this.vault);
+    this.hasUnsavedChanges = false;
+  }
+
+  // MATERIAL YOU BRANDING ADAPTATION ENGINE
+  private applyThemeColor(hex: string, source: string) {
+    localStorage.setItem("kw_md_theme_brand_hex", hex);
+    localStorage.setItem("kw_md_theme_brand_source", source);
+
+    const root = document.documentElement;
+    const isDark = root.classList.contains("dark");
+
+    root.style.setProperty("--color-natural-primary", hex);
+
+    if (!isDark) {
+      root.style.setProperty("--color-natural-primary-hover", adjustColorBrightness(hex, -15));
+      root.style.setProperty("--color-natural-primary-dark", adjustColorBrightness(hex, -30));
+      root.style.setProperty("--color-natural-accent", blendColor(hex, "#ffffff", 0.84));
+      root.style.setProperty("--color-natural-accent-hover", blendColor(hex, "#ffffff", 0.72));
+      root.style.setProperty("--color-natural-active-card-bg", blendColor(hex, "#ffffff", 0.88));
+      root.style.setProperty("--color-natural-text-dark", adjustColorBrightness(hex, -65));
+    } else {
+      const lightHex = blendColor(hex, "#ffffff", 0.25);
+      root.style.setProperty("--color-natural-primary", lightHex);
+      root.style.setProperty("--color-natural-primary-hover", adjustColorBrightness(lightHex, 15));
+      root.style.setProperty("--color-natural-primary-dark", adjustColorBrightness(lightHex, -40));
+      root.style.setProperty("--color-natural-accent", adjustColorBrightness(lightHex, -45));
+      root.style.setProperty("--color-natural-accent-hover", adjustColorBrightness(lightHex, -35));
+      root.style.setProperty("--color-natural-active-card-bg", adjustColorBrightness(lightHex, -55));
+      root.style.setProperty("--color-natural-text-dark", blendColor(lightHex, "#ffffff", 0.65));
+    }
+
+    const pickerInput = document.getElementById("theme-advanced-picker") as HTMLInputElement;
+    const hexOutput = document.getElementById("theme-hex-output") as HTMLInputElement;
+    if (pickerInput) pickerInput.value = hex;
+    if (hexOutput) hexOutput.value = hex;
+  }
+
+  private processWallpaperFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = (re) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        canvas.width = 50;
+        canvas.height = 50;
+        ctx.drawImage(img, 0, 0, 50, 50);
+        const data = ctx.getImageData(0, 0, 50, 50).data;
+
+        let rSum = 0, gSum = 0, bSum = 0, count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const a = data[i + 3];
+          if (a < 128) continue;
+
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          if (max - min < 20 && (max > 220 || min < 40)) continue;
+
+          rSum += r;
+          gSum += g;
+          bSum += b;
+          count++;
+        }
+
+        let hex = "#006B5D";
+        if (count > 0) {
+          hex = rgbToHex(Math.floor(rSum / count), Math.floor(gSum / count), Math.floor(bSum / count));
+        } else {
+          let r2 = 0, g2 = 0, b2 = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            r2 += data[i];
+            g2 += data[i+1];
+            b2 += data[i+2];
+          }
+          hex = rgbToHex(Math.floor(r2 / (data.length / 4)), Math.floor(g2 / (data.length / 4)), Math.floor(b2 / (data.length / 4)));
+        }
+
+        this.applyThemeColor(hex, "wallpaper");
+        this.showToast("Wallpaper palette generated & applied!");
+      };
+      img.src = re.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  private updateMobileViewLayout() {
+    const isMobile = window.innerWidth < 768;
+    const sidebar = document.getElementById("panel-sidebar");
+    const list = document.getElementById("panel-list");
+    const details = document.getElementById("panel-details");
+    const backBtn = document.getElementById("btn-mobile-back");
+
+    if (!sidebar || !list || !details) return;
+
+    if (!isMobile) {
+      sidebar.classList.remove("hidden");
+      list.classList.remove("hidden");
+      details.classList.remove("hidden");
+      backBtn?.classList.add("hidden");
+      return;
+    }
+
+    // Toggle on mobile breakpoint
+    if (this.activeMobileView === "sidebar") {
+      sidebar.classList.remove("hidden");
+      list.classList.add("hidden");
+      details.classList.add("hidden");
+      backBtn?.classList.remove("hidden");
+    } else if (this.activeMobileView === "list") {
+      sidebar.classList.add("hidden");
+      list.classList.remove("hidden");
+      details.classList.add("hidden");
+      backBtn?.classList.add("hidden");
+    } else {
+      sidebar.classList.add("hidden");
+      list.classList.add("hidden");
+      details.classList.remove("hidden");
+      backBtn?.classList.remove("hidden");
+    }
   }
 
   // 8. SIDEBAR RENDER
@@ -595,8 +982,8 @@ class AppManager {
 
       btn.innerHTML = `
         <div class="flex items-center gap-2.5 min-w-0 pr-2 flex-grow truncate sidebar-click-target">
-          <i data-lucide="${g.icon || 'folder'}" class="w-4 h-4 text-slate-400 shrink-0 ${isSelected ? 'text-sky-500' : ''}"></i>
-          <span class="truncate">${g.name}</span>
+          <i data-lucide="${g.icon || 'folder'}" class="w-4 h-4 text-slate-400 shrink-0 pointer-events-none ${isSelected ? 'text-sky-500' : ''}"></i>
+          <span class="truncate pointer-events-none">${g.name}</span>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="text-[10px] bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400 font-mono">${itemsCount}</span>
@@ -719,9 +1106,10 @@ class AppManager {
     filtered.forEach((e) => {
       const isSelected = this.selectedEntryId === e.id;
       const card = document.createElement("button");
+      card.setAttribute("draggable", "true");
       card.className = `w-full text-left p-3.5 rounded-2xl flex flex-col gap-1 border transition-all ${
         isSelected
-          ? "bg-sky-50 text-sky-800 border-slate-200 dark:bg-sky-950/60 dark:text-sky-300"
+          ? "bg-sky-50 text-sky-800 border-slate-200 dark:bg-sky-950/60 dark:text-sky-350"
           : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 border-slate-100 dark:border-slate-800"
       }`;
 
@@ -738,14 +1126,14 @@ class AppManager {
           const u = new URL(e.url.startsWith("http") ? e.url : `https://${e.url}`);
           domainIcon = `<img src="https://www.google.com/s2/favicons?sz=64&domain=${u.hostname}" class="w-8 h-8 rounded-lg bg-white shrink-0 object-contain p-1 border shadow-xs" referrerPolicy="no-referrer" onerror="this.src='';" />`;
         } catch {
-          domainIcon = `<div class="w-8 h-8 rounded-lg bg-sky-100 border text-sky-600 dark:bg-sky-950 dark:text-sky-300 flex items-center justify-center shrink-0 font-bold text-sm">${e.title.charAt(0).toUpperCase()}</div>`;
+          domainIcon = `<div class="w-8 h-8 rounded-lg bg-sky-100 border text-sky-600 dark:bg-sky-950 dark:text-sky-350 flex items-center justify-center shrink-0 font-bold text-sm" style="background-color: var(--color-natural-accent); color: var(--color-natural-primary);">${e.title.charAt(0).toUpperCase()}</div>`;
         }
       } else {
-        domainIcon = `<div class="w-8 h-8 rounded-lg bg-sky-100 border text-sky-600 dark:bg-sky-950 dark:text-sky-300 flex items-center justify-center shrink-0 font-bold text-sm">${e.title.charAt(0).toUpperCase()}</div>`;
+        domainIcon = `<div class="w-8 h-8 rounded-lg bg-sky-100 border text-sky-600 dark:bg-sky-950 dark:text-sky-330 flex items-center justify-center shrink-0 font-bold text-sm" style="background-color: var(--color-natural-accent); color: var(--color-natural-primary);">${e.title.charAt(0).toUpperCase()}</div>`;
       }
 
       card.innerHTML = `
-        <div class="flex items-center gap-3 w-full pr-1">
+        <div class="flex items-center gap-3 w-full pr-1 pointer-events-none">
           ${domainIcon}
           <div class="flex-grow min-w-0">
             <h4 class="font-bold text-sm truncate ${isSelected ? 'text-sky-800 dark:text-sky-200' : 'text-slate-800 dark:text-white'}">${e.title || this.t("untitled_entry")}</h4>
@@ -753,7 +1141,7 @@ class AppManager {
           </div>
         </div>
         
-        <div class="flex items-center justify-between mt-2.5 pt-2 border-t ${isSelected ? 'border-sky-200 dark:border-sky-850' : 'border-slate-100 dark:border-slate-800/50'}">
+        <div class="flex items-center justify-between mt-2.5 pt-2 border-t pointer-events-none ${isSelected ? 'border-sky-200 dark:border-sky-850' : 'border-slate-100 dark:border-slate-800/50'}">
           <div class="flex gap-1 overflow-hidden max-w-[70%]">
             ${tagsHTML}
           </div>
@@ -765,8 +1153,56 @@ class AppManager {
         this.selectedEntryId = e.id;
         this.isEditingEntry = false;
         this.editEntryState = null;
+        
+        // On mobile, click entry drives to details screen
+        this.activeMobileView = "details";
+        this.updateMobileViewLayout();
+
         this.renderEntryList();
         this.renderDetailsPanel();
+      });
+
+      // DRAG AND DROP HANDLERS
+      card.addEventListener("dragstart", (ev) => {
+        ev.dataTransfer?.setData("text/plain", e.id);
+        card.classList.add("opacity-40", "border-dashed");
+      });
+
+      card.addEventListener("dragend", () => {
+        card.classList.remove("opacity-40", "border-dashed");
+      });
+
+      card.addEventListener("dragover", (ev) => {
+        ev.preventDefault();
+        card.classList.add("border-sky-500", "scale-[1.01]");
+      });
+
+      card.addEventListener("dragleave", () => {
+        card.classList.remove("border-sky-500", "scale-[1.01]");
+      });
+
+      card.addEventListener("drop", async (ev) => {
+        ev.preventDefault();
+        card.classList.remove("border-sky-500", "scale-[1.01]");
+        
+        const draggedId = ev.dataTransfer?.getData("text/plain");
+        if (!draggedId || draggedId === e.id) return;
+
+        if (!this.vault) return;
+        const dragIdx = this.vault.entries.findIndex((ent) => ent.id === draggedId);
+        const dropIdx = this.vault.entries.findIndex((ent) => ent.id === e.id);
+
+        if (dragIdx !== -1 && dropIdx !== -1) {
+          const removed = this.vault.entries.splice(dragIdx, 1)[0];
+          this.vault.entries.splice(dropIdx, 0, removed);
+          
+          this.hasUnsavedChanges = true;
+          await this.saveHistory(this.vault.vaultName, this.vault);
+          this.renderSidebar();
+          this.renderEntryList();
+          this.renderDetailsPanel();
+          this.showToast("Entries reordered and saved successfully!");
+        }
       });
 
       listContainer.appendChild(card);
@@ -1421,6 +1857,7 @@ class AppManager {
     this.selectedEntryId = newId;
     this.isEditingEntry = true;
     this.editEntryState = JSON.parse(JSON.stringify(newEntry));
+    this.hasUnsavedChanges = true;
 
     // Update list & views
     this.renderSidebar();
@@ -1473,6 +1910,7 @@ class AppManager {
       // Reset editing flags
       this.isEditingEntry = false;
       this.editEntryState = null;
+      this.hasUnsavedChanges = true;
 
       // Persist in history log instantly
       this.saveHistory(this.vault.vaultName, this.vault);
@@ -1492,6 +1930,7 @@ class AppManager {
     this.selectedEntryId = null;
     this.isEditingEntry = false;
     this.editEntryState = null;
+    this.hasUnsavedChanges = true;
 
     // Save history
     this.saveHistory(this.vault.vaultName, this.vault);
@@ -1616,6 +2055,7 @@ class AppManager {
 
     // Persist
     this.vault.lastModified = new Date().toISOString();
+    this.hasUnsavedChanges = true;
     this.saveHistory(this.vault.vaultName, this.vault);
 
     // Redraw and close modal
@@ -1642,6 +2082,7 @@ class AppManager {
     }
 
     this.vault.lastModified = new Date().toISOString();
+    this.hasUnsavedChanges = true;
     this.saveHistory(this.vault.vaultName, this.vault);
 
     // Redraw
@@ -1820,14 +2261,371 @@ class AppManager {
       this.toggleTheme();
     });
 
+    // Theme Switch action buttons
+    document.getElementById("welcome-btn-theme")?.addEventListener("click", () => {
+      this.toggleTheme();
+    });
+
+    document.getElementById("dashboard-btn-theme")?.addEventListener("click", () => {
+      this.toggleTheme();
+    });
+
+    // 17.1 MOBILE RESPONSIVE BINDINGS
+    document.getElementById("btn-sidebar-toggle")?.addEventListener("click", () => {
+      this.activeMobileView = this.activeMobileView === "sidebar" ? "list" : "sidebar";
+      this.updateMobileViewLayout();
+    });
+
+    document.getElementById("btn-mobile-back")?.addEventListener("click", () => {
+      this.activeMobileView = "list";
+      this.updateMobileViewLayout();
+    });
+
+    // Handle viewport resize syncs
+    window.addEventListener("resize", () => {
+      this.updateMobileViewLayout();
+    });
+
+    // 17.2 SETTINGS MODAL INTERFACES & TABS
+    const settingsModal = document.getElementById("modal-settings");
+    const settingsBackdrop = document.getElementById("modal-settings-backdrop");
+    const settingsContainer = settingsModal?.querySelector(".relative");
+
+    const openSettings = () => {
+      if (!this.vault || !settingsModal || !settingsContainer) return;
+      
+      // Initialize tab values
+      const nameInp = document.getElementById("settings-vault-name") as HTMLInputElement;
+      if (nameInp) nameInp.value = this.vault.vaultName;
+
+      const langSelect = document.getElementById("settings-default-lang") as HTMLSelectElement;
+      if (langSelect) langSelect.value = this.currentLanguage;
+
+      const lockSelect = document.getElementById("settings-auto-lock") as HTMLSelectElement;
+      if (lockSelect) lockSelect.value = this.autoLockMinutes.toString();
+
+      const encToggle = document.getElementById("chk-vault-encryption") as HTMLInputElement;
+      if (encToggle) encToggle.checked = this.encrypted;
+
+      const statusTxt = document.getElementById("encryption-status-text");
+      if (statusTxt) statusTxt.textContent = this.encrypted ? "Currently enabled: stored securely using AES-256 standard." : "Currently disabled: stored as plaintext plain.json File.";
+
+      // Reset to first tab (General)
+      switchSettingsTab("general");
+
+      settingsModal.classList.remove("hidden");
+      setTimeout(() => {
+        settingsContainer.classList.remove("scale-95", "opacity-0");
+        settingsContainer.classList.add("scale-100", "opacity-100");
+      }, 20);
+    };
+
+    const closeSettings = () => {
+      if (!settingsModal || !settingsContainer) return;
+      settingsContainer.classList.remove("scale-100", "opacity-100");
+      settingsContainer.classList.add("scale-95", "opacity-0");
+      setTimeout(() => {
+        settingsModal.classList.add("hidden");
+      }, 200);
+    };
+
+    const switchSettingsTab = (tabName: string) => {
+      const tabs = ["general", "appearance", "security", "export"];
+      tabs.forEach((t) => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const panel = document.getElementById(`tab-panel-${t}`);
+        if (t === tabName) {
+          btn?.classList.add("bg-sky-50", "text-sky-600", "dark:bg-sky-950/40", "dark:text-sky-400");
+          btn?.classList.remove("text-slate-600", "dark:text-slate-400");
+          panel?.classList.remove("hidden");
+        } else {
+          btn?.classList.remove("bg-sky-50", "text-sky-600", "dark:bg-sky-950/40", "dark:text-sky-400");
+          btn?.classList.add("text-slate-600", "dark:text-slate-400");
+          panel?.classList.add("hidden");
+        }
+      });
+    };
+
+    document.getElementById("btn-settings")?.addEventListener("click", openSettings);
+    settingsBackdrop?.addEventListener("click", closeSettings);
+    document.getElementById("btn-settings-close")?.addEventListener("click", closeSettings);
+
+    const tabButtons = ["general", "appearance", "security", "export"];
+    tabButtons.forEach((tab) => {
+      document.getElementById(`tab-btn-${tab}`)?.addEventListener("click", () => {
+        switchSettingsTab(tab);
+      });
+    });
+
+    // 17.3 GENERAL SETTINGS SAVES
+    document.getElementById("btn-settings-save")?.addEventListener("click", () => {
+      if (!this.vault) return;
+      const nameInp = document.getElementById("settings-vault-name") as HTMLInputElement;
+      if (nameInp) {
+        const val = nameInp.value.trim();
+        if (val) {
+          this.vault.vaultName = val;
+          const masterInput = document.getElementById("vault-name-input") as HTMLInputElement;
+          if (masterInput) masterInput.value = val;
+        }
+      }
+
+      const langSelect = document.getElementById("settings-default-lang") as HTMLSelectElement;
+      if (langSelect) {
+        this.setLanguage(langSelect.value);
+      }
+
+      const lockSelect = document.getElementById("settings-auto-lock") as HTMLSelectElement;
+      if (lockSelect) {
+        this.autoLockMinutes = parseInt(lockSelect.value);
+        this.resetAutoLockTimer();
+      }
+
+      this.hasUnsavedChanges = true;
+      this.saveHistory(this.vault.vaultName, this.vault);
+      closeSettings();
+      this.showToast("Settings updated successfully!");
+    });
+
+    // 17.4 APPEARANCE PICKERS (THEMES, DETAILED SLIDERS, RGB, WALLPAPER)
+    // Preset Theme Buttons Click in Theme presets list grid
+    const presetThemeContainer = document.getElementById("theme-preset-grid");
+    presetThemeContainer?.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const hex = btn.getAttribute("data-color") || "#006B5D";
+        this.applyThemeColor(hex, "presets");
+        this.showToast("Preset accent color applied!");
+      });
+    });
+
+    // Basic Colors Button Picker Click
+    const basicColorContainer = document.getElementById("theme-basic-picker");
+    basicColorContainer?.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const hex = btn.getAttribute("data-hex") || "#EF4444";
+        this.applyThemeColor(hex, "basic");
+        this.showToast("Basic accent color applied!");
+      });
+    });
+
+    // Advanced Picker Input Change (Color Circle)
+    const advPicker = document.getElementById("theme-advanced-picker") as HTMLInputElement;
+    advPicker?.addEventListener("input", (e) => {
+      const hex = (e.target as HTMLInputElement).value;
+      this.applyThemeColor(hex, "advanced");
+    });
+
+    // Hex Manual Input Field
+    const hexManualText = document.getElementById("theme-hex-output") as HTMLInputElement;
+    hexManualText?.addEventListener("change", (e) => {
+      const hex = (e.target as HTMLInputElement).value;
+      if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        this.applyThemeColor(hex, "advanced");
+      }
+    });
+
+    // RGB Range Sliders Click
+    const rSlider = document.getElementById("rgb-slider-r") as HTMLInputElement;
+    const gSlider = document.getElementById("rgb-slider-g") as HTMLInputElement;
+    const bSlider = document.getElementById("rgb-slider-b") as HTMLInputElement;
+
+    const onRGBSliderChange = () => {
+      const rVal = parseInt(rSlider.value);
+      const gVal = parseInt(gSlider.value);
+      const bVal = parseInt(bSlider.value);
+      const hex = rgbToHex(rVal, gVal, bVal);
+      this.applyThemeColor(hex, "advanced");
+    };
+
+    [rSlider, gSlider, bSlider].forEach((slider) => {
+      slider?.addEventListener("input", onRGBSliderChange);
+    });
+
+    // Wallpaper Palette Generator Selector Click
+    const wpFile = document.getElementById("theme-wallpaper-upload") as HTMLInputElement;
+    wpFile?.addEventListener("change", (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        this.processWallpaperFile(file);
+      }
+    });
+
+    // 17.5 SECURITY ENCRYPTION ADVANCED MUTATIONS
+    const encToggle = document.getElementById("chk-vault-encryption") as HTMLInputElement;
+    encToggle?.addEventListener("change", async () => {
+      const statusTxt = document.getElementById("encryption-status-text");
+      if (encToggle.checked) {
+        // ENABLING ENCRYPTION
+        const password = await this.promptForPassword();
+        if (password === null) {
+          // Cancelled
+          encToggle.checked = false;
+          this.showToast("Encryption setup aborted.");
+          return;
+        }
+
+        this.masterPassword = password;
+        this.encrypted = true;
+        this.hasUnsavedChanges = true;
+        await this.saveHistory(this.vault!.vaultName, this.vault!);
+        if (statusTxt) statusTxt.textContent = "Currently enabled: stored securely using AES-256 standard.";
+        this.showToast("AES-256 Vault Encryption Activated!");
+      } else {
+        // DISABLING ENCRYPTION
+        let attemptsLeft = 3;
+        let verified = false;
+
+        while (attemptsLeft > 0 && !verified) {
+          const pass = prompt(`Please enter your current vault password to disable encryption (attempts left: ${attemptsLeft}):`);
+          if (pass === null) {
+            encToggle.checked = true;
+            this.showToast("Decryption request aborted.");
+            return;
+          }
+
+          if (pass === this.masterPassword) {
+            verified = true;
+          } else {
+            attemptsLeft--;
+            alert("Incorrect password!");
+          }
+        }
+
+        if (verified) {
+          this.encrypted = false;
+          this.masterPassword = "";
+          this.hasUnsavedChanges = true;
+          await this.saveHistory(this.vault!.vaultName, this.vault!);
+          if (statusTxt) statusTxt.textContent = "Currently disabled: stored as plaintext plain.json File.";
+          this.showToast("Encryption deactivated (plaintext JSON)");
+        } else {
+          encToggle.checked = true;
+          this.showToast("Failed password checks. Encryption stays activated.");
+        }
+      }
+    });
+
+    // 17.6 VAULT OPERATIONS: MERGE VAULT
+    const mergeInput = document.getElementById("file-merge-upload") as HTMLInputElement;
+    document.getElementById("btn-merge-vault")?.addEventListener("click", () => {
+      mergeInput.click();
+    });
+
+    mergeInput?.addEventListener("change", (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (re) => {
+        try {
+          const rawUploaded = JSON.parse(re.target?.result as string);
+          
+          let decryptedData = rawUploaded;
+          if (rawUploaded && rawUploaded.encrypted === true) {
+            let successPr = false;
+            while (!successPr) {
+              const passPr = await this.promptForPassword();
+              if (passPr === null) return; // User canceled import
+              try {
+                const dec = await decryptDataGCM(rawUploaded.ciphertext, rawUploaded.iv, rawUploaded.salt, passPr);
+                decryptedData = JSON.parse(dec);
+                successPr = true;
+              } catch {
+                alert("Incorrect Password for merging encrypted vault!");
+              }
+            }
+          }
+
+          if (!decryptedData || !Array.isArray(decryptedData.entries)) {
+            alert("Invalid Vault format mapping!");
+            return;
+          }
+
+          if (!this.vault) return;
+
+          // Merge Entries safely
+          let mergedCount = 0;
+          decryptedData.entries.forEach((newEnt: Entry) => {
+            const hasDuplicate = this.vault!.entries.some((ent) => ent.id === newEnt.id);
+            if (hasDuplicate) {
+              // Assign new unique id
+              newEnt.id = "entry-merged-" + Math.random().toString(36).substr(2, 9);
+            }
+            // Sync groups mismatch
+            if (newEnt.groupId) {
+              const matchesGroup = this.vault!.groups.some((g) => g.id === newEnt.groupId);
+              if (!matchesGroup) {
+                // Check if group can be found by name, else append group!
+                const matchedUpName = decryptedData.groups?.find((g: any) => g.id === newEnt.groupId)?.name;
+                if (matchedUpName) {
+                  const localGroup = this.vault!.groups.find((g) => g.name === matchedUpName);
+                  if (localGroup) {
+                    newEnt.groupId = localGroup.id;
+                  } else {
+                    const newGrpId = "group-merged-" + Math.random().toString(36).substr(2, 9);
+                    this.vault!.groups.push({ id: newGrpId, name: matchedUpName, icon: "folder" });
+                    newEnt.groupId = newGrpId;
+                  }
+                } else {
+                  newEnt.groupId = "";
+                }
+              }
+            }
+            this.vault!.entries.push(newEnt);
+            mergedCount++;
+          });
+
+          this.hasUnsavedChanges = true;
+          await this.saveHistory(this.vault.vaultName, this.vault);
+          this.renderSidebar();
+          this.renderEntryList();
+          this.renderDetailsPanel();
+
+          this.showToast(`Merged ${mergedCount} entries successfully into current vault!`);
+          closeSettings();
+        } catch {
+          alert("Error parsing or loading JSON raw files.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // Settings Export button click
+    document.getElementById("btn-export-settings")?.addEventListener("click", () => {
+      this.saveAndDownloadVault();
+      closeSettings();
+    });
+
+    document.getElementById("btn-export-plain")?.addEventListener("click", () => {
+      this.saveAndDownloadVault(true, false);
+      closeSettings();
+    });
+
+    document.getElementById("btn-export-encrypted")?.addEventListener("click", () => {
+      this.saveAndDownloadVault(false, true);
+      closeSettings();
+    });
+
+    // 17.7 APP EXIT SAFEGUARDS
+    window.addEventListener("beforeunload", (e) => {
+      if (this.hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved vault entries. If you exit now, your records might not be written.";
+        return e.returnValue;
+      }
+    });
+
+    // 17.8 RESET AUTO LOCK CLOCKS TIMER ON INTERACTIVE EVENTS
+    const triggerInactivityReset = () => {
+      this.resetAutoLockTimer();
+    };
+    ["pointerdown", "keydown", "click", "scroll"].forEach((ev) => {
+      window.addEventListener(ev, triggerInactivityReset);
+    });
+
     // Logout Click
     document.getElementById("btn-logout")?.addEventListener("click", () => {
-      this.vault = null;
-      this.selectedEntryId = null;
-      document.getElementById("app-dashboard")?.classList.add("hidden");
-      document.getElementById("app-welcome")?.classList.remove("hidden");
-      this.loadHistory();
-      this.showToast("Vault Locked & Locked Safely!");
+      this.logoutAndLock();
     });
 
     // Modal Group Actions BindINGS
@@ -1851,6 +2649,39 @@ class AppManager {
         this.setSelectedGroupIcon(iconAttr);
       });
     });
+  }
+
+  // AUTO-LOCK INACTIVITY SECURITY CONTROLLERS
+  private resetAutoLockTimer() {
+    if (this.autoLockTimer) {
+      clearTimeout(this.autoLockTimer);
+      this.autoLockTimer = null;
+    }
+
+    if (this.autoLockMinutes > 0 && this.vault) {
+      this.autoLockTimer = setTimeout(() => {
+        this.logoutAndLock();
+        this.showToast("Inactivity auto-lock locked your vault dashboard.");
+      }, this.autoLockMinutes * 60 * 1000);
+    }
+  }
+
+  private logoutAndLock() {
+    this.vault = null;
+    this.selectedEntryId = null;
+    this.masterPassword = "";
+    this.encrypted = false;
+    this.hasUnsavedChanges = false;
+    
+    if (this.autoLockTimer) {
+      clearTimeout(this.autoLockTimer);
+      this.autoLockTimer = null;
+    }
+
+    document.getElementById("app-dashboard")?.classList.add("hidden");
+    document.getElementById("app-welcome")?.classList.remove("hidden");
+    this.loadHistory();
+    this.showToast("Vault Locked & Locked Safely!");
   }
 }
 
