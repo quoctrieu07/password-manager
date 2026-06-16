@@ -9,7 +9,7 @@ A secure, offline-first, client-side Password Manager inspired by KeeWeb with Ma
 - **Group Management**: Organise credentials in tree-structured directories.
 - **Time-Based One-Time Passwords (TOTP)**: Custom integrated Base32 decoder and SHA1-HMAC algorithm calculates and copies TOTP pin codes on a 30-second loop.
 - **Robust Password Generator**: Direct options for password complexity and safety checks.
-- **Multilingual Localization**: Native support for English, Tiếng Việt, Español, and Français with external fallback fail-safes.
+- **Multilingual Localization**: Easily add and edit translations.
 
 ## Technical Execution
 
@@ -30,4 +30,3 @@ The workspace uses Vite to bundle the static source. The core system runs in `/s
    ```bash
    npm run build
    ```
-3. Open `index.html` directly in any web browser to run 100% locally from file.
