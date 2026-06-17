@@ -26,7 +26,3 @@ The workspace uses Vite to bundle the static source. The core system runs in `/s
    ```bash
    npm run dev
    ```
-2. Build for distribution/deployment (builds compilation in `/dist`):
-   ```bash
-   npm run build
-   ```
