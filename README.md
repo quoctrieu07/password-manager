@@ -105,12 +105,6 @@ Boot a high-perf Vite local dev server to preview changes instantly:
 npm run dev
 ```
 
-### 3. Build Production-Optimized Bundle
-Compile and build static minified production assets in the `dist/` directory:
-```bash
-npm run build
-```
-
 ---
 
 ## 🎨 Theme Customization Guides
