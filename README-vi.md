@@ -105,12 +105,6 @@ Khởi chạy máy chủ Vite cục bộ với hiệu năng cao giúp bạn xem 
 npm run dev
 ```
 
-### 3. Biên Dịch Đóng Gói (Production Build)
-Tối ưu dung lượng và xuất mã nguồn ra thư mục tĩnh `/dist` để sẵn sàng đưa lên môi trường hosting hoặc lưu về máy cá nhân:
-```bash
-npm run build
-```
-
 ---
 
 ## 🎨 Hướng Dẫn Tùy Chỉnh Giao Diện
