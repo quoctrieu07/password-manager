@@ -201,6 +201,8 @@ Dù dự án được mở rộng sâu về tính năng, cấu trúc cốt lõi 
 
 ---
 
+## 5. PERSONA
+
 ### 1. Sinh viên / Học sinh
 - **Tuổi:** 18 - 24
 - **Nghề nghiệp:** Sinh viên đại học hoặc học sinh cấp 3
@@ -245,9 +247,9 @@ Dù dự án được mở rộng sâu về tính năng, cấu trúc cốt lõi 
 
 ---
 
-## 5. Danh sách User Stories (Kiến trúc hóa theo chuẩn Agile)
+## 6. Danh sách User Stories (Kiến trúc hóa theo chuẩn Agile)
 
-### 5.1. Phân hệ Quản lý Tệp tin (Vault Management)
+### 6.1. Phân hệ Quản lý Tệp tin (Vault Management)
 
 * **User Story 1: Khởi tạo dữ liệu nhanh**
 * *Là một* người dùng mới sử dụng hệ thống lần đầu,
@@ -266,7 +268,7 @@ Dù dự án được mở rộng sâu về tính năng, cấu trúc cốt lõi 
 
 
 
-### 5.2. Phân hệ Thao tác Dữ liệu Tài khoản (Account Entry Management)
+### 6.2. Phân hệ Thao tác Dữ liệu Tài khoản (Account Entry Management)
 
 * **User Story 3: Thêm mới tài khoản chi tiết**
 * *Là một* người dùng có nhiều tài khoản mạng xã hội,
@@ -285,7 +287,7 @@ Dù dự án được mở rộng sâu về tính năng, cấu trúc cốt lõi 
 
 
 
-### 5.3. Phân hệ Tiện ích & Trải nghiệm Người dùng (Utilities & UX)
+### 6.3. Phân hệ Tiện ích & Trải nghiệm Người dùng (Utilities & UX)
 
 * **User Story 5: Tích hợp mã xác thực hai lớp (2FA)**
 * *Là một* người dùng coi trọng bảo mật lớp kép,
