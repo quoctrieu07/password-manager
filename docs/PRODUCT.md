@@ -51,6 +51,30 @@ Dù dự án được mở rộng sâu về tính năng, cấu trúc cốt lõi 
 
 ```
 
+### Định hướng mở rộng: Máy chủ đồng bộ tương lai
+
+Để giải quyết bài toán đồng bộ hóa đa thiết bị mà không làm phức tạp hóa hệ thống, dự án định hướng phát triển một **Sync Server** gọn nhẹ với tư duy kiến trúc:
+* **Lưu trữ Core (SQLite):** Sử dụng SQLite làm cơ sở dữ liệu trung tâm trên server. SQLite lý tưởng vì tính chất "zero-configuration" (không cần cài đặt/quản trị phức tạp), lưu trữ toàn bộ data trong một file duy nhất, giúp việc sao lưu (backup) và di chuyển server cực kỳ dễ dàng. SQLite sẽ quản lý thông tin tài khoản, metadata của các phiên đồng bộ, lịch sử thay đổi (versioning) và các file dữ liệu đã mã hóa.
+* **Cấu trúc lưu trữ dạng Thư mục (Directory-based Storage):** Thay vì đẩy toàn bộ file blob lớn vào database, server sử dụng cấu trúc thư mục phân cấp vật lý để lưu trữ các file dữ liệu mã hóa của người dùng (được định danh bằng Hash/UUID). Cách tiếp cận này giúp tối ưu hóa hiệu năng đọc/ghi, tận dụng tối đa hệ thống quản lý file của OS và giảm tải cho SQLite.
+* **Kiến trúc tinh gọn:** Sync Server đóng vai trò là một "vùng đệm trung chuyển" (Stateless/Storage Relay). Server không giữ Master Key và không có quyền giải mã dữ liệu; nó chỉ tiếp nhận, kiểm tra tính toàn vẹn (Etag/Timestamp) và đồng bộ các gói dữ liệu đã mã hóa giữa các thiết bị.
+
+```
+[ Client App ] (Ứng dụng chạy trên Trình duyệt / Web App)
+             │
+             ▼ (1. Mã hóa Client-side: Pack dữ liệu thành File JSON bảo mật)
+       [ Encrypted File (.json) ]
+             │
+             ▼ (2. Sync qua API / HTTPS)
+========================================================================
+[ SYNC SERVER ] (Máy chủ đồng bộ tinh gọn)
+========================================================================
+             │
+             ├─► [ Lớp Database: SQLite ] ──► (Quản lý User Session, Metadata, Versioing)
+             │
+             └─► [ Lớp File System ] ──────► (Lưu trữ vật lý File mã hóa theo Thư mục)
+             
+```
+
 ---
 
 ## 3. Danh sách Tính năng chi tiết (Detailed Feature Specifications)
