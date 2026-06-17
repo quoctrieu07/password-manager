@@ -4,21 +4,21 @@
 
 ### Bối cảnh thị trường
 
-Hiện nay, các trình quản lý mật khẩu trực tuyến (Cloud-based Password Manager) rất phổ biến nhưng luôn tiềm ẩn nguy cơ bị rò rỉ dữ liệu từ máy chủ trung tâm hoặc buộc người dùng phải trả phí định kỳ. Ngược lại, các công cụ ngoại tuyến (Offline) như KeePass lại có giao diện khá lỗi thời và phức tạp đối với người dùng phổ thông.
+Thị trường quản lý mật khẩu hiện nay đang bị chia rẽ giữa hai thái cực, và cả hai đều bộc lộ những điểm yếu chí mạng:
+
+* **Trình quản lý mật khẩu trên Cloud (1Password, Bitwarden, LastPass):** Phụ thuộc hoàn toàn vào kết nối mạng, bắt buộc phải đăng nhập mới có thể sử dụng và không hỗ trợ chế độ ngoại tuyến (Offline) thực sự. Ngoài ra, việc lưu trữ tập trung luôn đi kèm nguy cơ rò rỉ dữ liệu diện rộng từ máy chủ trung tâm.
+* **Cực đoan đối lập - KeePass và các công cụ Local:** Dù đảm bảo được tính riêng tư tại chỗ nhưng kiến trúc lại quá phức tạp. Nhiều ứng dụng trong hệ sinh thái KeePass hoàn toàn không hỗ trợ đồng bộ trực tuyến. Đáng ngại hơn, nhiều dự án kết hợp cả On/Offline đầy triển vọng trước đây nay đã bị bỏ hoang, hoặc đang sử dụng cấu trúc dữ liệu không hợp chuẩn, lỗi thời và dần ngừng hỗ trợ các giao thức Cloud (như WebDAV, Dropbox, Google Drive).
 
 ### Tầm nhìn
 
 > "Trở thành một giải pháp quản lý mật khẩu **Tối giản – Riêng tư tuyệt đối – Truy cập vạn năng**."
 
-Dự án hướng tới việc tái định nghĩa cách người dùng cá nhân bảo vệ danh tính số của mình:
+Dự án hướng tới việc bắc một cây cầu hoàn hảo giữa sự an toàn của Local và sự tiện lợi của Cloud, tái định nghĩa cách người dùng bảo vệ danh tính số:
 
-* **Quyền sở hữu dữ liệu tuyệt đối:** Không có khái niệm "máy chủ của bên thứ ba". Người dùng là chủ nhân duy nhất nắm giữ chìa khóa và file dữ liệu của họ.
-
-
-* **Không rào cản lắp đặt:** Chạy trực tiếp trên trình duyệt web thông qua công nghệ thuần (Vanilla JS) mà không cần cài đặt extension, không cần cài phần mềm cấu hình phức tạp.
-
-
-* **Mượt mà và Hiện đại:** Lấy cảm hứng từ triết lý thiết kế của KeeWeb, mang lại trải nghiệm UI/UX kéo thả trực quan, mượt mà như một ứng dụng Native cao cấp.
+* **Hybrid On/Offline hoàn chỉnh:** Giải quyết triệt để bài toán của các dự án bị bỏ hoang. Ứng dụng hỗ trợ cơ chế hoạt động Offline thuần túy nhưng vẫn tích hợp khả năng đồng bộ Cloud chuẩn hóa, hiện đại, giúp người dùng không bị cô lập dữ liệu trên một thiết bị.
+* **Quyền sở hữu dữ liệu tuyệt đối:** Không có khái niệm "máy chủ của bên thứ ba" giữ master key. Người dùng là chủ nhân duy nhất nắm giữ chìa khóa và file dữ liệu mã hóa của họ theo các chuẩn mở, hiện đại.
+* **Không rào cản lắp đặt:** Chạy trực tiếp trên trình duyệt web thông qua công nghệ web thuần mà không cần cài đặt extension, không cần cài phần mềm cấu hình phức tạp.
+* **Mượt mà và Hiện đại:** Giao diện tối giản, lấy cảm hứng từ triết lý thiết kế của KeeWeb nhưng tối ưu hơn về kiến trúc, mang lại trải nghiệm UI/UX kéo thả trực quan, mượt mà như một ứng dụng Native cao cấp.
 
 ---
 
