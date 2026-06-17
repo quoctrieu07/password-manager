@@ -3,27 +3,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @theme {
+  --variant-dark: class;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   /* Natural Tones - Override Slate and key colors to seamlessly style existing Tailwind classes */
-  --color-slate-50: var(--color-natural-ambient-bg);         /* Ambient background: F7F9F8 */
+  --color-slate-50: var(--color-natural-slate-50);         /* Ambient background: F7F9F8 */
   --color-slate-100: var(--color-natural-slate-100);       /* Buttons and input background: EFF1F0 */
-  --color-slate-200: var(--color-natural-divider);         /* Divider / outline: E0E3E1 */
-  --color-slate-400: var(--color-natural-text-secondary);   /* Secondary description / labels: 3F4947 */
-  --color-slate-500: var(--color-natural-text-secondary);   /* Secondary description / labels: 3F4947 */
-  --color-slate-600: var(--color-natural-text-secondary);   /* Secondary description / labels: 3F4947 */
-  --color-slate-800: var(--color-natural-text-primary);     /* Main body text: 191C1B */
-  --color-slate-900: var(--color-natural-surface);          /* Main card / panel surface: white / dark surface */
-  --color-slate-950: var(--color-natural-ambient-bg);       /* Ambient background level */
+  --color-slate-200: var(--color-natural-slate-200);       /* Divider / outline: E0E3E1 */
+  --color-slate-300: var(--color-natural-slate-300);       /* Premium high-contrast text color */
+  --color-slate-350: var(--color-natural-slate-350);       /* Inactive label/text gray */
+  --color-slate-400: var(--color-natural-slate-400);       /* Secondary description / labels: 3F4947 */
+  --color-slate-500: var(--color-natural-slate-500);       /* Secondary description / labels: 3F4947 */
+  --color-slate-600: var(--color-natural-slate-600);       /* Secondary description / labels: 3F4947 */
+  --color-slate-700: var(--color-natural-slate-700);       /* Darker outline / hover */
+  --color-slate-800: var(--color-natural-slate-800);       /* Main body text in light / dark bg container in dark */
+  --color-slate-900: var(--color-natural-slate-900);       /* Main card / panel surface: white / dark surface */
+  --color-slate-950: var(--color-natural-slate-905);       /* Ambient background level */
 
   --color-sky-50: var(--color-natural-active-card-bg);      /* Active list card: D0ECE7 */
   --color-sky-100: var(--color-natural-accent);            /* Sidebar selection / active badges: CCE8E3 */
   --color-sky-200: var(--color-natural-accent-hover);      /* Hover selection backgrounds: B3DCD4 */
+  --color-sky-300: var(--color-natural-text-dark);         /* active text highlight - crisp light green in dark mode */
+  --color-sky-400: var(--color-natural-primary);           /* medium primary highlight */
   --color-sky-500: var(--color-natural-primary);           /* Brand Accent color: 006B5D */
   --color-sky-600: var(--color-natural-primary-dark);      /* Dark Accent color: 005A4E */
   --color-sky-800: var(--color-natural-text-dark);         /* Dark Header Highlights text: 00201C */
-  --color-sky-950: var(--color-natural-text-dark);
+  --color-sky-950: var(--color-natural-accent);            /* Dark container bg - tone 20 in dark mode */
 
   --color-emerald-500: var(--color-natural-primary);
   --color-emerald-600: var(--color-natural-primary-dark);
@@ -33,6 +39,28 @@
 
   --color-rose-500: var(--color-natural-error);
   --color-rose-600: var(--color-natural-error-dark);
+
+  /* Material 3 Custom Palette Tokens */
+  --color-m3-primary: var(--color-m3-primary);
+  --color-m3-on-primary: var(--color-m3-on-primary);
+  --color-m3-primary-container: var(--color-m3-primary-container);
+  --color-m3-on-primary-container: var(--color-m3-on-primary-container);
+  
+  --color-m3-btn-primary-bg: var(--color-m3-btn-primary-bg);
+  --color-m3-btn-primary-text: var(--color-m3-btn-primary-text);
+  
+  --color-m3-btn-secondary-bg: var(--color-m3-btn-secondary-bg);
+  --color-m3-btn-secondary-text: var(--color-m3-btn-secondary-text);
+  
+  --color-m3-btn-tertiary-bg: var(--color-m3-btn-tertiary-bg);
+  --color-m3-btn-tertiary-text: var(--color-m3-btn-tertiary-text);
+  --color-m3-btn-tertiary-border: var(--color-m3-btn-tertiary-border);
+  
+  --color-m3-title: var(--color-m3-title);
+  --color-m3-select-bg: var(--color-m3-select-bg);
+  --color-m3-select-text: var(--color-m3-select-text);
+  --color-m3-icon-badge-bg: var(--color-m3-icon-badge-bg);
+  --color-m3-icon-badge-text: var(--color-m3-icon-badge-text);
 }
 
 :root {
@@ -53,6 +81,18 @@
   --color-natural-active-card-bg: #D0ECE7;
   --color-natural-error: #BA1A1A;
   --color-natural-error-dark: #8C0009;
+
+  --color-natural-slate-50: var(--color-natural-bg);
+  --color-natural-slate-200: var(--color-natural-divider);
+  --color-natural-slate-300: var(--color-natural-text-primary);
+  --color-natural-slate-350: var(--color-natural-text-secondary);
+  --color-natural-slate-400: var(--color-natural-text-secondary);
+  --color-natural-slate-500: var(--color-natural-text-secondary);
+  --color-natural-slate-600: var(--color-natural-text-secondary);
+  --color-natural-slate-700: var(--color-natural-text-secondary);
+  --color-natural-slate-800: var(--color-natural-text-primary);
+  --color-natural-slate-900: var(--color-natural-surface);
+  --color-natural-slate-905: var(--color-natural-bg);
 
   --color-natural-ambient-bg: var(--color-natural-bg);
 
@@ -93,6 +133,18 @@
   --color-natural-active-card-bg: #00372F;
   --color-natural-error: #FFB4AB;
   --color-natural-error-dark: #FFDAD6;
+
+  --color-natural-slate-50: var(--color-natural-bg);
+  --color-natural-slate-200: var(--color-natural-divider);
+  --color-natural-slate-300: var(--color-natural-text-primary);
+  --color-natural-slate-350: var(--color-natural-text-secondary);
+  --color-natural-slate-400: var(--color-natural-text-secondary);
+  --color-natural-slate-500: var(--color-natural-text-secondary);
+  --color-natural-slate-600: var(--color-natural-text-secondary);
+  --color-natural-slate-700: var(--color-natural-divider);
+  --color-natural-slate-800: var(--color-natural-slate-100);
+  --color-natural-slate-900: var(--color-natural-surface);
+  --color-natural-slate-905: var(--color-natural-bg);
 
   --color-natural-ambient-bg: var(--color-natural-bg);
 }
@@ -139,8 +191,18 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-shake {
+  animation: shake 0.35s cubic-bezier(.36,.07,.19,.97) both;
 }
 
 /* Range input styled with active color */
