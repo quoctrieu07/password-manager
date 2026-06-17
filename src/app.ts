@@ -51,7 +51,7 @@ function bufToHex(buf: Uint8Array): string {
 function hexToBuf(hex: string): Uint8Array {
   const bytes = [];
   for (let c = 0; c < hex.length; c += 2) {
-    bytes.push(parseInt(hex.substring(c, 2), 16));
+    bytes.push(parseInt(hex.substring(c, c + 2), 16));
   }
   return new Uint8Array(bytes);
 }
@@ -157,6 +157,48 @@ function blendColor(color1: string, color2: string, weight: number): string {
   const b = Math.round(b1 * (1 - weight) + b2 * weight);
 
   return rgbToHex(r, g, b);
+}
+
+function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  let raw = hex.replace("#", "");
+  if (raw.length === 3) {
+    raw = raw.split("").map(c => c + c).join("");
+  }
+  const r = parseInt(raw.substring(0, 2), 16) / 255;
+  const g = parseInt(raw.substring(2, 4), 16) / 255;
+  const b = parseInt(raw.substring(4, 6), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const r = l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+    return Math.floor(Math.max(0, Math.min(1, r)) * 255);
+  };
+  const toHex = (x: number) => x.toString(16).padStart(2, "0");
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
 }
 
 // 1. DYNAMIC TRANSLATION SYSTEM
@@ -638,28 +680,20 @@ class AppManager {
 
   private async tryAndLoadAnyVault(rawData: any, filename: string): Promise<boolean> {
     if (rawData && rawData.encrypted === true) {
-      let success = false;
-      while (!success) {
-        const password = await this.promptForPassword();
-        if (password === null) {
-          return false;
-        }
-
+      const password = await this.promptForPassword(async (pass) => {
         try {
-          const decryptedStr = await decryptDataGCM(rawData.ciphertext, rawData.iv, rawData.salt, password);
+          const decryptedStr = await decryptDataGCM(rawData.ciphertext, rawData.iv, rawData.salt, pass);
           const decryptedData = JSON.parse(decryptedStr);
-          this.masterPassword = password;
+          this.masterPassword = pass;
           this.encrypted = true;
           this.loadVaultData(decryptedData, rawData.vaultName || filename);
-          success = true;
           this.showToast(`Successfully Decrypted & Loaded ${filename}`);
+          return true;
         } catch (e) {
-          const errorLbl = document.getElementById("prompt-error-lbl");
-          if (errorLbl) errorLbl.classList.remove("hidden");
-          await new Promise(r => setTimeout(r, 600));
+          return false;
         }
-      }
-      return true;
+      });
+      return password !== null;
     } else {
       this.masterPassword = "";
       this.encrypted = false;
@@ -668,9 +702,9 @@ class AppManager {
     }
   }
 
-  private promptForPassword(): Promise<string | null> {
+  private promptForPassword(validateFn?: (pass: string) => Promise<boolean>): Promise<string | null> {
     const modal = document.getElementById("modal-password-prompt");
-    const container = modal?.querySelector(".relative");
+    const container = modal?.querySelector(".relative") as HTMLElement | null;
     const input = document.getElementById("prompt-password-input") as HTMLInputElement;
     const errorLbl = document.getElementById("prompt-error-lbl");
     const cancelBtn = document.getElementById("btn-password-prompt-cancel");
@@ -710,10 +744,33 @@ class AppManager {
         resolve(value);
       };
 
-      const onSubmit = () => {
+      const onSubmit = async () => {
         const val = input.value;
         if (!val) return;
-        finish(val);
+
+        if (submitBtn) (submitBtn as HTMLButtonElement).disabled = true;
+        if (cancelBtn) (cancelBtn as HTMLButtonElement).disabled = true;
+
+        if (validateFn) {
+          const isValid = await validateFn(val);
+          if (submitBtn) (submitBtn as HTMLButtonElement).disabled = false;
+          if (cancelBtn) (cancelBtn as HTMLButtonElement).disabled = false;
+          
+          if (isValid) {
+            finish(val);
+          } else {
+            if (errorLbl) errorLbl.classList.remove("hidden");
+            container.classList.add("animate-shake");
+            setTimeout(() => {
+              container.classList.remove("animate-shake");
+            }, 400);
+            input.select();
+          }
+        } else {
+          if (submitBtn) (submitBtn as HTMLButtonElement).disabled = false;
+          if (cancelBtn) (cancelBtn as HTMLButtonElement).disabled = false;
+          finish(val);
+        }
       };
 
       const onCancel = () => {
@@ -833,36 +890,167 @@ class AppManager {
 
   // MATERIAL YOU BRANDING ADAPTATION ENGINE
   private applyThemeColor(hex: string, source: string) {
-    localStorage.setItem("kw_md_theme_brand_hex", hex);
+    let verifiedHex = hex;
+    if (!/^#[0-9A-Fa-f]{6}$/.test(verifiedHex)) {
+      verifiedHex = "#006B5D";
+    }
+    localStorage.setItem("kw_md_theme_brand_hex", verifiedHex);
     localStorage.setItem("kw_md_theme_brand_source", source);
 
     const root = document.documentElement;
     const isDark = root.classList.contains("dark");
+    const contrast = localStorage.getItem("kw_md_theme_contrast") || "standard";
 
-    root.style.setProperty("--color-natural-primary", hex);
+    const seedHsl = hexToHsl(verifiedHex);
+    const h = seedHsl.h;
+
+    // Material 3 Dynamic Palette Saturation levels
+    const sPrimary = Math.max(35, Math.min(seedHsl.s, 85)); // Primary is moderately vibrant
+    const sSecondary = Math.max(12, Math.min(seedHsl.s * 0.35, 30)); // Secondary is balanced and muted
+    const sNeutral = Math.max(4, Math.min(seedHsl.s * 0.08, 10)); // Neutral is smooth near-grayscale
+    const sNeutralVar = Math.max(6, Math.min(seedHsl.s * 0.16, 14)); // Neutral Variant is slightly colorful for panels/borders
+
+    // Contrast level tuning parameters to comply with A11y
+    let toneOffsetText = 0;
+    let toneOffsetBg = 0;
+    let toneOffsetBtn = 0;
+
+    if (contrast === "medium") {
+      toneOffsetText = 8;
+      toneOffsetBg = 4;
+      toneOffsetBtn = 5;
+    } else if (contrast === "high") {
+      toneOffsetText = 16;
+      toneOffsetBg = 8;
+      toneOffsetBtn = 10;
+    }
+
+    let bgHex, surfaceHex, slate100Hex, dividerHex, textPrimaryHex, textSecondaryHex, textDarkHex;
+    let primaryHex, primaryHoverHex, primaryDarkHex, accentHex, accentHoverHex, activeCardBgHex;
+    let buttonPrimaryBg, buttonPrimaryText;
+    let buttonSecondaryBg, buttonSecondaryText;
+    let buttonTertiaryBg, buttonTertiaryText, buttonTertiaryBorder;
+    let selectBg, selectText, iconBadgeBg, iconBadgeText, welcomeTitle;
 
     if (!isDark) {
-      root.style.setProperty("--color-natural-primary-hover", adjustColorBrightness(hex, -15));
-      root.style.setProperty("--color-natural-primary-dark", adjustColorBrightness(hex, -30));
-      root.style.setProperty("--color-natural-accent", blendColor(hex, "#ffffff", 0.84));
-      root.style.setProperty("--color-natural-accent-hover", blendColor(hex, "#ffffff", 0.72));
-      root.style.setProperty("--color-natural-active-card-bg", blendColor(hex, "#ffffff", 0.88));
-      root.style.setProperty("--color-natural-text-dark", adjustColorBrightness(hex, -65));
+      // --- LIGHT SYSTEM PALETTES ---
+      primaryHex = hslToHex(h, sPrimary, Math.max(25, 40 - toneOffsetBtn));
+      primaryHoverHex = hslToHex(h, sPrimary, Math.max(20, 32 - toneOffsetBtn));
+      primaryDarkHex = hslToHex(h, sPrimary, Math.max(15, 25 - toneOffsetBtn));
+      accentHex = hslToHex(h, sPrimary, Math.min(97, 90 + toneOffsetText / 2));
+      accentHoverHex = hslToHex(h, sPrimary, Math.min(94, 85 + toneOffsetText / 2));
+      activeCardBgHex = hslToHex(h, sPrimary, Math.min(99, 94 + toneOffsetText / 4));
+      textDarkHex = hslToHex(h, sPrimary, Math.max(5, 10 - toneOffsetText));
+
+      bgHex = hslToHex(h, sNeutral, Math.min(100, 98 + toneOffsetBg)); // Dynamic Neutral Light Bg
+      surfaceHex = "#ffffff"; // Pure surface container card panels
+      textPrimaryHex = hslToHex(h, sNeutral, Math.max(0, 15 - toneOffsetText));
+
+      slate100Hex = hslToHex(h, sNeutralVar, Math.max(85, 94 - toneOffsetBg)); // e.g. custom container background
+      dividerHex = hslToHex(h, sNeutralVar, Math.max(70, 90 - toneOffsetBg)); // e.g. borders
+      textSecondaryHex = hslToHex(h, sNeutralVar, Math.max(15, 28 - toneOffsetText));
+
+      // --- LIGHT BUTTON RULES ---
+      // Primary button: Dark brand background, pure white crisp text
+      buttonPrimaryBg = primaryHex;
+      buttonPrimaryText = "#ffffff";
+
+      // Secondary button: Tinted light primary background (Tone 93), dark text (Tone 25)
+      buttonSecondaryBg = hslToHex(h, sPrimary, Math.max(88, 93 - toneOffsetBg));
+      buttonSecondaryText = hslToHex(h, sPrimary, Math.max(10, 25 - toneOffsetText));
+
+      // Tertiary button: Transparent background with clear brand boundary borders
+      buttonTertiaryBg = "transparent";
+      buttonTertiaryText = hslToHex(h, sPrimary, Math.max(15, 35 - toneOffsetText));
+      buttonTertiaryBorder = hslToHex(h, sPrimary, Math.max(65, 80 - toneOffsetBg));
+
+      // STARTING SCREEN ELEMENTS
+      welcomeTitle = hslToHex(h, sPrimary, Math.max(5, 25 - toneOffsetText));
+      selectBg = hslToHex(h, sPrimary, 95);
+      selectText = hslToHex(h, sPrimary, 25);
+      iconBadgeBg = hslToHex(h, sPrimary, 92);
+      iconBadgeText = hslToHex(h, sPrimary, 30);
     } else {
-      const lightHex = blendColor(hex, "#ffffff", 0.25);
-      root.style.setProperty("--color-natural-primary", lightHex);
-      root.style.setProperty("--color-natural-primary-hover", adjustColorBrightness(lightHex, 15));
-      root.style.setProperty("--color-natural-primary-dark", adjustColorBrightness(lightHex, -40));
-      root.style.setProperty("--color-natural-accent", adjustColorBrightness(lightHex, -45));
-      root.style.setProperty("--color-natural-accent-hover", adjustColorBrightness(lightHex, -35));
-      root.style.setProperty("--color-natural-active-card-bg", adjustColorBrightness(lightHex, -55));
-      root.style.setProperty("--color-natural-text-dark", blendColor(lightHex, "#ffffff", 0.65));
+      // --- DARK SYSTEM PALETTES ---
+      primaryHex = hslToHex(h, sPrimary, Math.min(94, 76 + toneOffsetBtn)); // M3 light pastel primary in Dark Mode
+      primaryHoverHex = hslToHex(h, sPrimary, Math.min(97, 84 + toneOffsetBtn));
+      primaryDarkHex = hslToHex(h, sPrimary, Math.max(20, 30 - toneOffsetBtn));
+      accentHex = hslToHex(h, sPrimary, Math.max(10, 20 - toneOffsetText / 2));
+      accentHoverHex = hslToHex(h, sPrimary, Math.max(12, 26 - toneOffsetText / 2));
+      activeCardBgHex = hslToHex(h, sPrimary, Math.max(8, 14 - toneOffsetText / 4));
+      textDarkHex = hslToHex(h, sPrimary, Math.min(100, 95 + toneOffsetText));
+
+      bgHex = hslToHex(h, sNeutral, Math.max(4, 9 - toneOffsetBg)); // Deep dark neutral
+      surfaceHex = hslToHex(h, sNeutral, Math.max(6, 13 - toneOffsetBg)); // Surface Elevation container card
+      textPrimaryHex = hslToHex(h, sNeutral, Math.min(100, 92 + toneOffsetText));
+
+      slate100Hex = hslToHex(h, sNeutralVar, Math.max(8, 16 - toneOffsetBg)); // subtle input container bg
+      dividerHex = hslToHex(h, sNeutralVar, Math.max(12, 21 - toneOffsetBg)); // borders
+      textSecondaryHex = hslToHex(h, sNeutralVar, Math.min(90, 74 + toneOffsetText));
+
+      // --- DARK BUTTON RULES ---
+      // REVERT DESIGN: Primary button uses light pastel primary bg (Tone 76) with deep dark text (Tone 12)!
+      buttonPrimaryBg = primaryHex;
+      buttonPrimaryText = hslToHex(h, sPrimary, Math.max(5, 12 - toneOffsetBtn));
+
+      // Secondary button: Medium container (Tone 18), soft elevated text (Tone 85)
+      buttonSecondaryBg = hslToHex(h, sPrimary, Math.max(10, 18 - toneOffsetBg));
+      buttonSecondaryText = hslToHex(h, sPrimary, Math.min(98, 85 + toneOffsetText));
+
+      // Tertiary button: Deep outline border
+      buttonTertiaryBg = "transparent";
+      buttonTertiaryText = hslToHex(h, sPrimary, Math.min(95, 75 + toneOffsetText));
+      buttonTertiaryBorder = hslToHex(h, sPrimary, Math.max(20, 32 - toneOffsetBg));
+
+      // STARTING SCREEN ELEMENTS
+      welcomeTitle = hslToHex(h, sPrimary, Math.min(100, 84 + toneOffsetText));
+      selectBg = hslToHex(h, sPrimary, 18);
+      selectText = hslToHex(h, sPrimary, 85);
+      iconBadgeBg = hslToHex(h, sPrimary, 15);
+      iconBadgeText = hslToHex(h, sPrimary, 80);
     }
+
+    // Set standard variables dynamically
+    root.style.setProperty("--color-natural-ambient-bg", bgHex);
+    root.style.setProperty("--color-natural-bg", bgHex);
+    root.style.setProperty("--color-natural-surface", surfaceHex);
+    root.style.setProperty("--color-natural-divider", dividerHex);
+    root.style.setProperty("--color-natural-slate-100", slate100Hex);
+    root.style.setProperty("--color-natural-text-primary", textPrimaryHex);
+    root.style.setProperty("--color-natural-text-secondary", textSecondaryHex);
+    root.style.setProperty("--color-natural-text-dark", textDarkHex);
+
+    root.style.setProperty("--color-natural-primary", primaryHex);
+    root.style.setProperty("--color-natural-primary-hover", primaryHoverHex);
+    root.style.setProperty("--color-natural-primary-dark", primaryDarkHex);
+    root.style.setProperty("--color-natural-accent", accentHex);
+    root.style.setProperty("--color-natural-accent-hover", accentHoverHex);
+    root.style.setProperty("--color-natural-active-card-bg", activeCardBgHex);
+
+    // Set Material 3 variables dynamically
+    root.style.setProperty("--color-m3-primary", primaryHex);
+    root.style.setProperty("--color-m3-on-primary", buttonPrimaryText);
+    root.style.setProperty("--color-m3-primary-container", accentHex);
+    root.style.setProperty("--color-m3-on-primary-container", textDarkHex);
+    
+    root.style.setProperty("--color-m3-btn-primary-bg", buttonPrimaryBg);
+    root.style.setProperty("--color-m3-btn-primary-text", buttonPrimaryText);
+    root.style.setProperty("--color-m3-btn-secondary-bg", buttonSecondaryBg);
+    root.style.setProperty("--color-m3-btn-secondary-text", buttonSecondaryText);
+    root.style.setProperty("--color-m3-btn-tertiary-bg", buttonTertiaryBg);
+    root.style.setProperty("--color-m3-btn-tertiary-text", buttonTertiaryText);
+    root.style.setProperty("--color-m3-btn-tertiary-border", buttonTertiaryBorder);
+
+    root.style.setProperty("--color-m3-title", welcomeTitle);
+    root.style.setProperty("--color-m3-select-bg", selectBg);
+    root.style.setProperty("--color-m3-select-text", selectText);
+    root.style.setProperty("--color-m3-icon-badge-bg", iconBadgeBg);
+    root.style.setProperty("--color-m3-icon-badge-text", iconBadgeText);
 
     const pickerInput = document.getElementById("theme-advanced-picker") as HTMLInputElement;
     const hexOutput = document.getElementById("theme-hex-output") as HTMLInputElement;
-    if (pickerInput) pickerInput.value = hex;
-    if (hexOutput) hexOutput.value = hex;
+    if (pickerInput) pickerInput.value = verifiedHex;
+    if (hexOutput) hexOutput.value = verifiedHex;
   }
 
   private processWallpaperFile(file: File) {
@@ -986,7 +1174,7 @@ class AppManager {
           <span class="truncate pointer-events-none">${g.name}</span>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
-          <span class="text-[10px] bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400 font-mono">${itemsCount}</span>
+          <span class="text-[10px] bg-[var(--color-m3-icon-badge-bg)] text-[var(--color-m3-icon-badge-text)] text-[10px] leading-none px-1.5 py-0.5 rounded-full font-mono font-bold shrink-0">${itemsCount}</span>
           <button class="btn-edit-group opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-sky-500 transition-all" title="Edit Group">
             <i data-lucide="edit-3" class="w-3 h-3"></i>
           </button>
@@ -1141,7 +1329,7 @@ class AppManager {
           </div>
         </div>
         
-        <div class="flex items-center justify-between mt-2.5 pt-2 border-t pointer-events-none ${isSelected ? 'border-sky-200 dark:border-sky-850' : 'border-slate-100 dark:border-slate-800/50'}">
+        <div class="flex items-center justify-between mt-2.5 pt-2 border-t pointer-events-none ${isSelected ? 'border-sky-200 dark:border-sky-800' : 'border-slate-100 dark:border-slate-800/50'}">
           <div class="flex gap-1 overflow-hidden max-w-[70%]">
             ${tagsHTML}
           </div>
@@ -1282,28 +1470,30 @@ class AppManager {
     let otpBlock = "";
     if (e.otpSecret) {
       otpBlock = `
-        <div class="p-4 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="p-2 bg-amber-500/20 text-amber-500 rounded-xl relative">
-              <i data-lucide="shield-alert" class="w-5 h-5"></i>
-              <!-- Loading Circle SVG visual countdown -->
-              <svg class="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                <path class="text-amber-500/10" stroke="currentColor" stroke-width="2" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path id="totp-progress-ring" class="text-amber-500 transition-all duration-1000 ease-linear" stroke="currentColor" stroke-width="2" stroke-dasharray="100, 100" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              </svg>
-            </div>
-            <div>
-              <span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest block">${this.t("totp_code")}</span>
-              <div class="flex items-center gap-2">
-                <span id="totp-digits-span" class="text-2xl font-mono font-bold tracking-widest text-slate-800 dark:text-amber-300">......</span>
-                <span id="totp-timer-span" class="text-[10px] text-slate-400 font-mono">00s</span>
+        <div class="p-4 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col gap-3 shadow-sm">
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-3">
+              <div class="p-2.5 bg-amber-500/15 text-amber-500 rounded-xl">
+                <i data-lucide="shield-alert" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest block">${this.t("totp_code")}</span>
+                <div class="flex items-center gap-2">
+                  <span id="totp-digits-span" class="text-2xl font-mono font-bold tracking-widest text-slate-800 dark:text-amber-300">......</span>
+                  <span id="totp-timer-span" class="text-[10px] text-slate-400 font-mono">00s</span>
+                </div>
               </div>
             </div>
+            <button id="btn-copy-totp" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md active:scale-95">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span id="lbl-copy-totp">Copy Code</span>
+            </button>
           </div>
-          <button id="btn-copy-totp" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-md active:scale-95">
-            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-            <span id="lbl-copy-totp">Copy Code</span>
-          </button>
+          
+          <!-- Sleek Linear Countdown Bar -->
+          <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div id="totp-progress-bar" class="bg-amber-500 h-full rounded-full transition-all duration-1000 ease-linear" style="width: 100%;"></div>
+          </div>
         </div>
       `;
     }
@@ -1334,7 +1524,7 @@ class AppManager {
             <i data-lucide="fingerprint" class="w-8 h-8"></i>
           </div>
           <div class="min-w-0 flex-1">
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white break-words">${e.title || this.t("untitled_entry")}</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-800 dark:text-white break-words">${e.title || this.t("untitled_entry")}</h1>
             <div class="flex flex-wrap gap-1.5 mt-2">
               ${e.tags
                 .map((t) => `<span class="px-2 py-0.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/10">${t}</span>`)
@@ -1755,7 +1945,7 @@ class AppManager {
 
     const digitsSpan = document.getElementById("totp-digits-span");
     const timerSpan = document.getElementById("totp-timer-span");
-    const ring = document.getElementById("totp-progress-ring");
+    const bar = document.getElementById("totp-progress-bar");
 
     if (digitsSpan) {
       const activeCode = getTotp(secret);
@@ -1766,10 +1956,10 @@ class AppManager {
       timerSpan.textContent = this.t("totp_expires_in", { seconds: secondsRemaining.toString() });
     }
 
-    // Circular Countdown SVG ring update
-    if (ring) {
+    // Linear Countdown progress bar update
+    if (bar) {
       const percentage = (secondsRemaining / 30) * 100;
-      ring.setAttribute("stroke-dasharray", `${percentage}, 100`);
+      bar.style.width = `${percentage}%`;
     }
   }
 
@@ -2141,13 +2331,12 @@ class AppManager {
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (re) => {
+      reader.onload = async (re) => {
         try {
           const parsed = JSON.parse(re.target?.result as string);
-          this.loadVaultData(parsed, file.name);
-          this.showToast(`Opened raw file: ${file.name}`);
+          await this.tryAndLoadAnyVault(parsed, file.name);
         } catch {
-          alert("Invalid JSON upload error!");
+          this.showToast("Invalid JSON upload error!");
         }
       };
       reader.readAsText(file);
@@ -2261,15 +2450,6 @@ class AppManager {
       this.toggleTheme();
     });
 
-    // Theme Switch action buttons
-    document.getElementById("welcome-btn-theme")?.addEventListener("click", () => {
-      this.toggleTheme();
-    });
-
-    document.getElementById("dashboard-btn-theme")?.addEventListener("click", () => {
-      this.toggleTheme();
-    });
-
     // 17.1 MOBILE RESPONSIVE BINDINGS
     document.getElementById("btn-sidebar-toggle")?.addEventListener("click", () => {
       this.activeMobileView = this.activeMobileView === "sidebar" ? "list" : "sidebar";
@@ -2298,10 +2478,10 @@ class AppManager {
       const nameInp = document.getElementById("settings-vault-name") as HTMLInputElement;
       if (nameInp) nameInp.value = this.vault.vaultName;
 
-      const langSelect = document.getElementById("settings-default-lang") as HTMLSelectElement;
+      const langSelect = document.getElementById("settings-lang-select") as HTMLSelectElement;
       if (langSelect) langSelect.value = this.currentLanguage;
 
-      const lockSelect = document.getElementById("settings-auto-lock") as HTMLSelectElement;
+      const lockSelect = document.getElementById("settings-autolock-select") as HTMLSelectElement;
       if (lockSelect) lockSelect.value = this.autoLockMinutes.toString();
 
       const encToggle = document.getElementById("chk-vault-encryption") as HTMLInputElement;
@@ -2332,15 +2512,17 @@ class AppManager {
     const switchSettingsTab = (tabName: string) => {
       const tabs = ["general", "appearance", "security", "export"];
       tabs.forEach((t) => {
-        const btn = document.getElementById(`tab-btn-${t}`);
-        const panel = document.getElementById(`tab-panel-${t}`);
+        const btn = settingsModal?.querySelector(`button[data-tab="${t}"]`);
+        const panel = document.getElementById(`settings-tab-${t}`);
         if (t === tabName) {
-          btn?.classList.add("bg-sky-50", "text-sky-600", "dark:bg-sky-950/40", "dark:text-sky-400");
-          btn?.classList.remove("text-slate-600", "dark:text-slate-400");
+          // Add active styles
+          btn?.classList.add("active", "bg-sky-100", "text-sky-800", "dark:bg-sky-950/60", "dark:text-sky-300");
+          btn?.classList.remove("text-slate-600", "dark:text-slate-350", "hover:bg-slate-100", "dark:hover:bg-slate-800");
           panel?.classList.remove("hidden");
         } else {
-          btn?.classList.remove("bg-sky-50", "text-sky-600", "dark:bg-sky-950/40", "dark:text-sky-400");
-          btn?.classList.add("text-slate-600", "dark:text-slate-400");
+          // Add inactive styles
+          btn?.classList.remove("active", "bg-sky-100", "text-sky-800", "dark:bg-sky-950/60", "dark:text-sky-300");
+          btn?.classList.add("text-slate-600", "dark:text-slate-350", "hover:bg-slate-100", "dark:hover:bg-slate-800");
           panel?.classList.add("hidden");
         }
       });
@@ -2352,39 +2534,40 @@ class AppManager {
 
     const tabButtons = ["general", "appearance", "security", "export"];
     tabButtons.forEach((tab) => {
-      document.getElementById(`tab-btn-${tab}`)?.addEventListener("click", () => {
+      settingsModal?.querySelector(`button[data-tab="${tab}"]`)?.addEventListener("click", () => {
         switchSettingsTab(tab);
       });
     });
 
-    // 17.3 GENERAL SETTINGS SAVES
-    document.getElementById("btn-settings-save")?.addEventListener("click", () => {
+    // 17.3 GENERAL SETTINGS SAVES IN REAL TIME
+    const nameInp = document.getElementById("settings-vault-name") as HTMLInputElement;
+    nameInp?.addEventListener("input", () => {
       if (!this.vault) return;
-      const nameInp = document.getElementById("settings-vault-name") as HTMLInputElement;
-      if (nameInp) {
-        const val = nameInp.value.trim();
-        if (val) {
-          this.vault.vaultName = val;
-          const masterInput = document.getElementById("vault-name-input") as HTMLInputElement;
-          if (masterInput) masterInput.value = val;
-        }
+      const val = nameInp.value.trim();
+      if (val) {
+        this.vault.vaultName = val;
+        const masterInput = document.getElementById("vault-name-input") as HTMLInputElement;
+        if (masterInput) masterInput.value = val;
+        this.hasUnsavedChanges = true;
+        this.saveHistory(val, this.vault);
       }
+    });
 
-      const langSelect = document.getElementById("settings-default-lang") as HTMLSelectElement;
-      if (langSelect) {
-        this.setLanguage(langSelect.value);
-      }
-
-      const lockSelect = document.getElementById("settings-auto-lock") as HTMLSelectElement;
-      if (lockSelect) {
-        this.autoLockMinutes = parseInt(lockSelect.value);
-        this.resetAutoLockTimer();
-      }
-
+    const langSelect = document.getElementById("settings-lang-select") as HTMLSelectElement;
+    langSelect?.addEventListener("change", () => {
+      if (!this.vault) return;
+      this.setLanguage(langSelect.value);
       this.hasUnsavedChanges = true;
       this.saveHistory(this.vault.vaultName, this.vault);
-      closeSettings();
-      this.showToast("Settings updated successfully!");
+    });
+
+    const lockSelect = document.getElementById("settings-autolock-select") as HTMLSelectElement;
+    lockSelect?.addEventListener("change", () => {
+      if (!this.vault) return;
+      this.autoLockMinutes = parseInt(lockSelect.value);
+      this.resetAutoLockTimer();
+      this.hasUnsavedChanges = true;
+      this.saveHistory(this.vault.vaultName, this.vault);
     });
 
     // 17.4 APPEARANCE PICKERS (THEMES, DETAILED SLIDERS, RGB, WALLPAPER)
@@ -2424,25 +2607,46 @@ class AppManager {
       }
     });
 
-    // RGB Range Sliders Click
-    const rSlider = document.getElementById("rgb-slider-r") as HTMLInputElement;
-    const gSlider = document.getElementById("rgb-slider-g") as HTMLInputElement;
-    const bSlider = document.getElementById("rgb-slider-b") as HTMLInputElement;
+    // Material You Contrast Level Selector Change
+    const contrastSelect = document.getElementById("theme-contrast-select") as HTMLSelectElement;
+    if (contrastSelect) {
+      contrastSelect.value = localStorage.getItem("kw_md_theme_contrast") || "standard";
+      contrastSelect.addEventListener("change", (e) => {
+        const val = (e.target as HTMLSelectElement).value;
+        localStorage.setItem("kw_md_theme_contrast", val);
+        const savedBrandHex = localStorage.getItem("kw_md_theme_brand_hex") || "#006B5D";
+        const savedBrandSource = localStorage.getItem("kw_md_theme_brand_source") || "presets";
+        this.applyThemeColor(savedBrandHex, savedBrandSource);
+        this.showToast("Contrast preference updated!");
+      });
+    }
 
-    const onRGBSliderChange = () => {
-      const rVal = parseInt(rSlider.value);
-      const gVal = parseInt(gSlider.value);
-      const bVal = parseInt(bSlider.value);
-      const hex = rgbToHex(rVal, gVal, bVal);
-      this.applyThemeColor(hex, "advanced");
-    };
+    // Wallpaper Palette Generator Selector Click and drag-drop triggers
+    const wpFile = document.getElementById("theme-wallpaper-upload") as HTMLInputElement;
+    const dragZone = document.getElementById("wallpaper-drag-zone");
 
-    [rSlider, gSlider, bSlider].forEach((slider) => {
-      slider?.addEventListener("input", onRGBSliderChange);
+    dragZone?.addEventListener("click", () => {
+      wpFile.click();
     });
 
-    // Wallpaper Palette Generator Selector Click
-    const wpFile = document.getElementById("theme-wallpaper-upload") as HTMLInputElement;
+    dragZone?.addEventListener("dragover", (ev) => {
+      ev.preventDefault();
+      dragZone.classList.add("border-sky-500", "bg-sky-50/20");
+    });
+
+    dragZone?.addEventListener("dragleave", () => {
+      dragZone.classList.remove("border-sky-500", "bg-sky-50/20");
+    });
+
+    dragZone?.addEventListener("drop", (ev) => {
+      ev.preventDefault();
+      dragZone.classList.remove("border-sky-500", "bg-sky-50/20");
+      const file = ev.dataTransfer?.files?.[0];
+      if (file && file.type.startsWith("image/")) {
+        this.processWallpaperFile(file);
+      }
+    });
+
     wpFile?.addEventListener("change", (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
@@ -2507,7 +2711,7 @@ class AppManager {
 
     // 17.6 VAULT OPERATIONS: MERGE VAULT
     const mergeInput = document.getElementById("file-merge-upload") as HTMLInputElement;
-    document.getElementById("btn-merge-vault")?.addEventListener("click", () => {
+    document.getElementById("btn-settings-merge")?.addEventListener("click", () => {
       mergeInput.click();
     });
 
@@ -2522,18 +2726,16 @@ class AppManager {
           
           let decryptedData = rawUploaded;
           if (rawUploaded && rawUploaded.encrypted === true) {
-            let successPr = false;
-            while (!successPr) {
-              const passPr = await this.promptForPassword();
-              if (passPr === null) return; // User canceled import
+            const passPr = await this.promptForPassword(async (pass) => {
               try {
-                const dec = await decryptDataGCM(rawUploaded.ciphertext, rawUploaded.iv, rawUploaded.salt, passPr);
+                const dec = await decryptDataGCM(rawUploaded.ciphertext, rawUploaded.iv, rawUploaded.salt, pass);
                 decryptedData = JSON.parse(dec);
-                successPr = true;
+                return true;
               } catch {
-                alert("Incorrect Password for merging encrypted vault!");
+                return false;
               }
-            }
+            });
+            if (passPr === null) return; // User canceled import
           }
 
           if (!decryptedData || !Array.isArray(decryptedData.entries)) {

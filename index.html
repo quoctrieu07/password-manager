@@ -22,7 +22,7 @@
       }
     </style>
   </head>
-  <body class="bg-slate-50 text-slate-900 transition-colors duration-200">
+  <body class="bg-slate-50 text-slate-800 transition-colors duration-200">
     
     <!-- Loading Screen -->
     <div id="initial-spinner">
@@ -45,22 +45,22 @@
         <!-- Welcome Left Info -->
         <div class="flex-1 space-y-6">
           <div class="flex items-center gap-3">
-            <div class="p-3 bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 rounded-2xl shadow-inner">
+            <div class="p-3 bg-m3-icon-badge-bg text-m3-icon-badge-text rounded-2xl shadow-inner">
               <i data-lucide="shield-check" class="w-10 h-10"></i>
             </div>
             <div>
-              <h1 id="lbl-welcome-title" class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Welcome to Password Manager</h1>
+              <h1 id="lbl-welcome-title" class="text-3xl font-bold tracking-tight text-m3-title">Welcome to Password Manager</h1>
             </div>
           </div>
           <p id="lbl-welcome-desc" class="text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
             A secure, local, and private vault for all your credentials. Everything is stored directly on your computer under your control. No cloud server leaks, no subscriptions, no corporate tracking.
           </p>
-
+ 
           <!-- Locale Select & Dark Light -->
           <div class="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
             <div class="flex items-center gap-2">
               <i data-lucide="languages" class="w-4 h-4 text-slate-400"></i>
-              <select id="welcome-lang-select" class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white px-3 py-1.5 rounded-xl border-none text-sm transition-colors cursor-pointer">
+              <select id="welcome-lang-select" class="bg-m3-select-bg text-m3-select-text px-3 py-1.5 rounded-xl border-none text-sm transition-colors cursor-pointer">
                 <option value="en">English</option>
                 <option value="vi">Tiếng Việt</option>
                 <option value="es">Español</option>
@@ -69,33 +69,33 @@
                 <option value="ru">Русский</option>
               </select>
             </div>
-
-            <button id="welcome-btn-theme" class="p-2 bg-slate-100 dark:bg-slate-800 dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+ 
+            <button id="welcome-btn-theme" class="p-2 bg-m3-select-bg text-m3-select-text rounded-xl hover:brightness-95 dark:hover:brightness-110 transition-colors">
               <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
               <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
             </button>
           </div>
         </div>
-
+ 
         <!-- Welcome Right Actions -->
         <div class="w-full md:w-80 flex flex-col gap-3 py-4">
-          <button id="btn-create-vault" class="w-full flex items-center justify-between p-4 bg-sky-500 hover:bg-sky-600 text-white rounded-2xl font-semibold shadow-lg shadow-sky-500/20 active:scale-95 transition-all text-left">
+          <button id="btn-create-vault" class="w-full flex items-center justify-between p-4 bg-m3-btn-primary-bg text-m3-btn-primary-text rounded-2xl font-semibold shadow-lg shadow-m3-primary/10 active:scale-95 transition-all text-left">
             <div class="flex items-center gap-3">
               <i data-lucide="folder-plus" class="w-5 h-5"></i>
               <span id="lbl-create-new-vault">Create New Vault</span>
             </div>
             <i data-lucide="chevron-right" class="w-5 h-5 opacity-70"></i>
           </button>
-
-          <button id="btn-open-vault" class="w-full flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl font-semibold active:scale-95 transition-all text-left">
+ 
+          <button id="btn-open-vault" class="w-full flex items-center justify-between p-4 bg-m3-btn-secondary-bg text-m3-btn-secondary-text rounded-2xl font-semibold active:scale-95 transition-all text-left">
             <div class="flex items-center gap-3">
-              <i data-lucide="file-digit" class="w-5 h-5 text-emerald-500"></i>
+              <i data-lucide="file-digit" class="w-5 h-5"></i>
               <span id="lbl-open-existing-vault">Open Existing Vault</span>
             </div>
             <i data-lucide="chevron-right" class="w-5 h-5 opacity-70"></i>
           </button>
-
-          <button id="btn-load-sample" class="w-full flex items-center justify-between p-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl font-semibold border border-amber-500/20 active:scale-95 transition-all text-left">
+ 
+          <button id="btn-load-sample" class="w-full flex items-center justify-between p-4 bg-m3-btn-tertiary-bg text-m3-btn-tertiary-text rounded-2xl font-semibold border border-m3-btn-tertiary-border active:scale-95 transition-all text-left">
             <div class="flex items-center gap-3">
               <i data-lucide="sparkles" class="w-5 h-5"></i>
               <span id="lbl-load-sample">Load Sample Vault</span>
@@ -129,10 +129,10 @@
         <!-- Left: Vault Information -->
         <div class="flex items-center gap-2.5 shrink-0">
           <!-- Mobile Sidebar/Back Nav Toggles -->
-          <button id="btn-mobile-sidebar" class="md:hidden p-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl transition-colors hover:bg-slate-250 dark:hover:bg-slate-700" title="Toggle Sidebar">
+          <button id="btn-mobile-sidebar" class="md:hidden p-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 rounded-xl transition-colors hover:bg-slate-250 dark:hover:bg-slate-700" title="Toggle Sidebar">
             <i data-lucide="menu" class="w-4.5 h-4.5"></i>
           </button>
-          <button id="btn-mobile-back" class="hidden md:hidden p-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl transition-colors hover:bg-slate-250 dark:hover:bg-slate-700" title="Back to list">
+          <button id="btn-mobile-back" class="hidden md:hidden p-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 rounded-xl transition-colors hover:bg-slate-250 dark:hover:bg-slate-700" title="Back to list">
             <i data-lucide="arrow-left" class="w-4.5 h-4.5"></i>
           </button>
 
@@ -140,8 +140,8 @@
             <i data-lucide="shield" class="w-5 h-5"></i>
           </div>
           <div class="flex items-center gap-2">
-            <input type="text" id="vault-name-input" value="My Vault" class="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-bold text-lg px-2 py-1 rounded-lg border-none focus:bg-white dark:focus:bg-slate-800 transition-colors w-32 md:w-56 focus:ring-1 focus:ring-sky-500 focus:outline-none" title="Click to rename vault" />
-            <button id="btn-save-vault" class="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white px-3.5 py-1.5 rounded-xl text-sm font-semibold shadow-md transition-all shrink-0">
+            <input type="text" id="vault-name-input" value="My Vault" class="bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-white font-bold text-lg px-2 py-1 rounded-lg border-none focus:bg-white dark:focus:bg-slate-800 transition-colors w-32 md:w-56 focus:ring-1 focus:ring-sky-500 focus:outline-none" title="Click to rename vault" />
+            <button id="btn-save-vault" class="flex items-center gap-1.5 bg-m3-btn-primary-bg text-m3-btn-primary-text hover:brightness-95 dark:hover:brightness-110 active:scale-95 px-3.5 py-1.5 rounded-xl text-sm font-semibold shadow-md shadow-m3-primary/10 transition-all shrink-0">
               <i data-lucide="save" class="w-4 h-4"></i>
               <span id="lbl-save">Save</span>
             </button>
@@ -153,42 +153,29 @@
           <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
             <i data-lucide="search" class="w-4 h-4"></i>
           </div>
-          <input type="search" id="global-search-input" placeholder="Search entries..." class="w-full bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white pl-10 pr-4 py-2 rounded-2xl border-none focus:bg-white dark:focus:bg-slate-700 transition-colors focus:ring-2 focus:ring-sky-500 focus:outline-none text-sm" />
+          <input type="search" id="global-search-input" placeholder="Search entries..." class="w-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white pl-10 pr-4 py-2 rounded-2xl border-none focus:bg-white dark:focus:bg-slate-700 transition-colors focus:ring-2 focus:ring-sky-500 focus:outline-none text-sm" />
         </div>
 
         <!-- Right: Actions/Theme/Languages -->
         <div class="flex items-center gap-2.5 shrink-0">
-          <button id="btn-new-entry" class="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-600 text-white px-3.5 py-1.5 rounded-xl text-sm font-semibold active:scale-95 shadow-md transition-all">
+          <button id="btn-new-entry" class="flex items-center gap-1.5 bg-m3-btn-primary-bg text-m3-btn-primary-text hover:brightness-95 dark:hover:brightness-110 px-3.5 py-1.5 rounded-xl text-sm font-semibold active:scale-95 shadow-md shadow-m3-primary/10 transition-all">
             <i data-lucide="plus" class="w-4 h-4"></i>
             <span id="lbl-new-entry">New Entry</span>
           </button>
           
-          <button id="btn-new-group-top" class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 px-3.5 py-1.5 rounded-xl text-sm font-semibold active:scale-95 transition-all">
+          <button id="btn-new-group-top" class="flex items-center gap-1.5 bg-m3-btn-secondary-bg text-m3-btn-secondary-text hover:brightness-95 dark:hover:brightness-110 px-3.5 py-1.5 rounded-xl text-sm font-semibold active:scale-95 transition-all">
             <i data-lucide="folder-plus" class="w-4 h-4"></i>
             <span id="lbl-new-group">New Group</span>
           </button>
 
-          <!-- Vertical Divider -->
-          <div class="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
-
-          <!-- Language Selector -->
-          <select id="dashboard-lang-select" class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white px-2 py-1.5 rounded-xl border-none text-xs transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-sky-400 max-w-28">
-            <option value="en">English</option>
-            <option value="vi">Tiếng Việt</option>
-            <option value="es">Español</option>
-            <option value="fr">Français</option>
-            <option value="jp">日本語</option>
-            <option value="ru">Русский</option>
-          </select>
-
           <!-- Toggle Theme Dashboard -->
-          <button id="dashboard-btn-theme" class="p-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+          <button id="dashboard-btn-theme" class="p-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
             <i data-lucide="moon" class="w-4.5 h-4.5 dark:hidden"></i>
             <i data-lucide="sun" class="w-4.5 h-4.5 hidden dark:block"></i>
           </button>
 
           <!-- Integration Settings Button -->
-          <button id="btn-settings" class="p-2 bg-slate-100 dark:bg-slate-800 text-slate-850 dark:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-705 transition-colors" title="Settings">
+          <button id="btn-settings" class="p-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="Settings">
             <i data-lucide="settings" class="w-4.5 h-4.5"></i>
           </button>
 
@@ -213,7 +200,7 @@
                   <i data-lucide="layout-grid" class="w-4.5 h-4.5 text-sky-500"></i>
                   <span id="lbl-all-items">All Items</span>
                 </div>
-                <span id="badge-all-count" class="bg-slate-200 dark:bg-slate-800 text-xs px-2 py-0.5 rounded-md font-mono text-slate-600 dark:text-slate-400">0</span>
+                <span id="badge-all-count" class="bg-[var(--color-m3-icon-badge-bg)] text-[var(--color-m3-icon-badge-text)] text-[10px] leading-none px-1.5 py-0.5 rounded-full font-mono font-bold shrink-0">0</span>
               </button>
             </div>
 
@@ -302,7 +289,7 @@
       <div id="modal-group-backdrop" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"></div>
       
       <!-- Box Container -->
-      <div class="relative bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 z-10 scale-95 opacity-0 transition-all duration-200">
+      <div class="relative bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 z-10 scale-95 opacity-0 transition-all duration-200">
         <h3 id="modal-group-title" class="text-xl font-bold mb-4">Add Group</h3>
         
         <div class="space-y-4">
@@ -337,7 +324,7 @@
 
         <div class="mt-6 flex items-center justify-end gap-2.5">
           <button id="btn-group-modal-cancel" class="px-4 py-2 text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold rounded-xl transition-colors">Cancel</button>
-          <button id="btn-group-modal-save" class="px-4.5 py-2 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-xl active:scale-95 transition-all shadow-md">Add</button>
+          <button id="btn-group-modal-save" class="px-4.5 py-2 bg-m3-btn-primary-bg text-m3-btn-primary-text hover:brightness-95 dark:hover:brightness-110 font-semibold rounded-xl active:scale-95 transition-all shadow-md shadow-m3-primary/10">Add</button>
         </div>
       </div>
     </div>
@@ -349,12 +336,12 @@
       <div id="modal-settings-backdrop" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"></div>
       
       <!-- Box Container (Material lateral style settings panel) -->
-      <div class="relative bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl max-w-2xl w-full h-[32rem] md:h-[28rem] flex flex-col md:flex-row shadow-2xl border border-slate-200 dark:border-slate-800 z-10 scale-95 opacity-0 transition-all duration-200 overflow-hidden">
+      <div class="relative bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-3xl max-w-2xl w-full h-[32rem] md:h-[28rem] flex flex-col md:flex-row shadow-2xl border border-slate-200 dark:border-slate-800 z-10 scale-95 opacity-0 transition-all duration-200 overflow-hidden">
         
         <!-- Left: Tabs sidebar navigation list -->
         <div class="w-full md:w-48 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 p-4 shrink-0 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible md:overflow-y-auto">
           <h3 class="hidden md:block text-xs font-bold text-slate-400 uppercase tracking-widest px-3 mb-4">Settings</h3>
-          <button data-tab="general" class="tab-btn active w-auto md:w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-left text-sm font-semibold transition-all select-none whitespace-nowrap bg-sky-100 text-sky-805 dark:bg-sky-950/60 dark:text-sky-300">
+          <button data-tab="general" class="tab-btn active w-auto md:w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-left text-sm font-semibold transition-all select-none whitespace-nowrap bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
             <i data-lucide="settings-2" class="w-4 h-4 text-sky-500"></i>
             <span>General</span>
           </button>
@@ -384,22 +371,11 @@
               <div class="grid grid-cols-1 gap-4">
                 <div class="space-y-1.5">
                   <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Vault File Name</label>
-                  <input type="text" id="settings-vault-name" class="w-full bg-slate-100 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-sky-500 text-slate-750 dark:text-white font-semibold" value="My Vault" />
-                </div>
-                <div class="space-y-1.5">
-                  <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Language Default</label>
-                  <select id="settings-lang-select" class="w-full bg-slate-100 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm focus:bg-white dark:focus:bg-slate-700 text-slate-755 dark:text-white font-semibold">
-                    <option value="en">English</option>
-                    <option value="vi">Tiếng Việt</option>
-                    <option value="es">Español</option>
-                    <option value="fr">Français</option>
-                    <option value="jp">日本語</option>
-                    <option value="ru">Русский</option>
-                  </select>
+                  <input type="text" id="settings-vault-name" class="w-full bg-slate-100 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-sky-500 text-slate-800 dark:text-white font-semibold" value="My Vault" />
                 </div>
                 <div class="space-y-1.5">
                   <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Auto-Lock Timer</label>
-                  <select id="settings-autolock-select" class="w-full bg-slate-100 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm focus:bg-white dark:focus:bg-slate-700 text-slate-755 dark:text-white font-semibold">
+                  <select id="settings-autolock-select" class="w-full bg-slate-100 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm focus:bg-white dark:focus:bg-slate-700 text-slate-800 dark:text-white font-semibold">
                     <option value="0">Never</option>
                     <option value="1">1 Minute</option>
                     <option value="5">5 Minutes</option>
@@ -409,9 +385,9 @@
                   </select>
                 </div>
                 <div class="pt-4 border-t border-slate-100 dark:border-slate-800 text-slate-800 dark:text-white">
-                  <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 font-mono flex items-center gap-1.5"><i data-lucide="combine" class="w-3.5 h-3.5 text-emerald-500"></i> Merge Vault Data</h4>
-                  <p class="text-xs text-slate-404 mb-3 leading-relaxed">Select a JSON file containing a password vault to merge its credentials with your current vault. Duplicate entries will be verified and secure encryption parsed automatically.</p>
-                  <button id="btn-settings-merge" class="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95">
+                  <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 font-mono flex items-center gap-1.5"><i data-lucide="combine" class="w-3.5 h-3.5 text-m3-primary"></i> Merge Vault Data</h4>
+                  <p class="text-xs text-slate-500 mb-3 leading-relaxed">Select a JSON file containing a password vault to merge its credentials with your current vault. Duplicate entries will be verified and secure encryption parsed automatically.</p>
+                  <button id="btn-settings-merge" class="flex items-center gap-1.5 bg-m3-btn-tertiary-bg text-m3-btn-tertiary-text border border-m3-btn-tertiary-border px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs hover:brightness-95 dark:hover:brightness-110 active:scale-95">
                     <i data-lucide="shuffle" class="w-4 h-4"></i>
                     <span>Merge Vault</span>
                   </button>
@@ -422,7 +398,7 @@
 
             <!-- APPEARANCE SETTINGS PANEL -->
             <div id="settings-tab-appearance" class="settings-tab-pane hidden space-y-6 animate-fade-in text-slate-800 dark:text-white">
-              <h4 class="text-base font-bold text-slate-850 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2"><i data-lucide="palette" class="w-5 h-5 text-sky-505"></i> Theme & Color Palettes</h4>
+              <h4 class="text-base font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2"><i data-lucide="palette" class="w-5 h-5 text-sky-500"></i> Theme & Color Palettes</h4>
               
               <!-- Themes Option Grid -->
               <div class="space-y-4">
@@ -467,17 +443,27 @@
                   <div class="space-y-1.5">
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">3. Advanced RGB</label>
                     <div class="flex items-center gap-2">
-                      <input type="color" id="theme-advanced-picker" class="w-10 h-10 border border-slate-200 dark:border-slate-805 bg-transparent rounded-xl cursor-copy shrink-0" />
-                      <input type="text" id="theme-hex-output" class="w-full bg-slate-100 dark:bg-slate-850 border-none px-3 py-2 rounded-xl text-xs font-mono font-bold select-all focus:bg-white uppercase" value="#006B5D" readonly />
+                      <input type="color" id="theme-advanced-picker" class="w-10 h-10 border border-slate-200 dark:border-slate-800 bg-transparent rounded-xl cursor-copy shrink-0" />
+                      <input type="text" id="theme-hex-output" class="w-full bg-slate-100 dark:bg-slate-800 border-none px-3 py-2 rounded-xl text-xs font-mono font-bold select-all focus:bg-white uppercase" value="#006B5D" readonly />
                     </div>
                   </div>
                 </div>
 
+                <!-- Material You Contrast Selection -->
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest">Contrast Level</label>
+                  <select id="theme-contrast-select" class="w-full bg-slate-100 dark:bg-slate-800 border-none px-3 py-2.5 rounded-xl text-xs font-bold cursor-pointer text-slate-700 dark:text-white transition-all focus:ring-2 focus:ring-sky-500">
+                    <option value="standard">Standard Contrast (Default)</option>
+                    <option value="medium">Medium Contrast (A11y)</option>
+                    <option value="high">High Contrast (Maximum Accessibility)</option>
+                  </select>
+                </div>
+
                 <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
                   <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">4. Wallpaper Extraction</label>
-                  <p class="text-[11px] text-slate-404 mb-3 leading-relaxed">Upload a scenic wallpaper or background image. We will extract its dominant palette to build a pristine dynamic accent palette instantly.</p>
+                  <p class="text-[11px] text-slate-400 mb-3 leading-relaxed">Upload a scenic wallpaper or background image. We will extract its dominant palette to build a pristine dynamic accent palette instantly.</p>
                   
-                  <div id="wallpaper-drag-zone" class="border-2 border-dashed border-slate-205 dark:border-slate-700 hover:border-sky-500 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors flex items-center justify-center gap-2.5">
+                  <div id="wallpaper-drag-zone" class="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-sky-500 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors flex items-center justify-center gap-2.5">
                     <i data-lucide="image" class="w-5 h-5 text-slate-400"></i>
                     <span class="text-xs font-semibold text-slate-500">Click or drag image to extract palette</span>
                     <input type="file" id="theme-wallpaper-upload" accept="image/*" class="hidden" />
@@ -488,7 +474,7 @@
 
             <!-- SECURITY PANEL -->
             <div id="settings-tab-security" class="settings-tab-pane hidden space-y-6 animate-fade-in text-slate-800 dark:text-white">
-              <h4 class="text-base font-bold text-slate-850 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2"><i data-lucide="shield-check" class="w-5 h-5 text-rose-505"></i> Security & Cryptography</h4>
+              <h4 class="text-base font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2"><i data-lucide="shield-check" class="w-5 h-5 text-rose-500"></i> Security & Cryptography</h4>
               
               <div class="space-y-4">
                 <div class="p-4 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 rounded-2xl flex flex-col md:flex-row items-center gap-4 justify-between">
@@ -509,7 +495,7 @@
                   </label>
                 </div>
                 
-                <div class="p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-100 dark:border-slate-800/60 text-xs text-slate-402 space-y-2.5 leading-relaxed">
+                <div class="p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-100 dark:border-slate-800/60 text-xs text-slate-400 space-y-2.5 leading-relaxed">
                   <div class="font-bold uppercase tracking-wider flex items-center gap-1 text-slate-500 font-mono"><i data-lucide="info" class="w-3.5 h-3.5"></i> Crypto Specifications</div>
                   <p>All encrypted vaults undergo secure PBKDF2 iterations (100,000 passes, SHA-256) to derive a rugged 256-bit symmetric encryption key. We encrypt your entire groups, entries schema using authenticated AES-GCM (Galois/Counter Mode) preventing structure tampering, all safely on your own client sandbox.</p>
                 </div>
@@ -518,7 +504,7 @@
 
             <!-- EXPORT PANEL -->
             <div id="settings-tab-export" class="settings-tab-pane hidden space-y-5 animate-fade-in text-slate-800 dark:text-white">
-              <h4 class="text-base font-bold text-slate-850 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2"><i data-lucide="download" class="w-5 h-5 text-sky-500"></i> Export Coordinates & Formats</h4>
+              <h4 class="text-base font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-2"><i data-lucide="download" class="w-5 h-5 text-sky-500"></i> Export Coordinates & Formats</h4>
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div class="p-5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center gap-3">
@@ -527,9 +513,9 @@
                   </div>
                   <div>
                     <h5 class="text-sm font-bold text-slate-800 dark:text-white">Export Plain Text JSON</h5>
-                    <p class="text-[11px] text-slate-404 mt-1 leading-relaxed">Saves all entries unencrypted in memory. Anyone with file system access will have full visibility.</p>
+                    <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">Saves all entries unencrypted in memory. Anyone with file system access will have full visibility.</p>
                   </div>
-                  <button id="btn-export-plain" class="mt-2 text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-705 dark:text-white border border-transparent rounded-xl px-4 py-2 transition-all active:scale-95 shadow-xs">Export Plain JSON</button>
+                  <button id="btn-export-plain" class="mt-2 text-xs font-bold bg-m3-btn-secondary-bg text-m3-btn-secondary-text hover:brightness-95 dark:hover:brightness-110 border border-transparent rounded-xl px-4 py-2 transition-all active:scale-95 shadow-xs">Export Plain JSON</button>
                 </div>
 
                 <div class="p-5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center gap-3">
@@ -537,8 +523,8 @@
                     <i data-lucide="lock" class="w-6 h-6"></i>
                   </div>
                   <div>
-                    <h5 class="text-sm font-bold text-slate-805 dark:text-white">Export Encrypted JSON</h5>
-                    <p class="text-[11px] text-slate-404 mt-1 leading-relaxed">Saves your database securely using AES-256 standard. Require master password credentials to lock.</p>
+                    <h5 class="text-sm font-bold text-slate-800 dark:text-white">Export Encrypted JSON</h5>
+                    <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">Saves your database securely using AES-256 standard. Require master password credentials to lock.</p>
                   </div>
                   <button id="btn-export-encrypted" class="mt-2 text-xs font-bold bg-rose-500 text-white rounded-xl px-4 py-2 hover:bg-rose-600 transition-all active:scale-95 shadow-md">Export Encrypted JSON</button>
                 </div>
@@ -549,7 +535,7 @@
 
           <!-- Bottom: lock/footer -->
           <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-end gap-2 shrink-0">
-            <button id="btn-settings-close" class="px-5 py-2 bg-sky-500 hover:bg-sky-600 text-white font-semibold rounded-xl text-sm active:scale-95 transition-all shadow-md">Close Settings</button>
+            <button id="btn-settings-close" class="px-5 py-2 bg-m3-btn-primary-bg text-m3-btn-primary-text hover:brightness-95 dark:hover:brightness-110 font-semibold rounded-xl text-sm active:scale-95 transition-all shadow-md shadow-m3-primary/10">Close Settings</button>
           </div>
 
         </div>
@@ -564,7 +550,7 @@
       <div id="modal-password-backdrop" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs"></div>
       
       <!-- Box Container -->
-      <div class="relative bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 z-10 scale-95 opacity-0 transition-all duration-205">
+      <div class="relative bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 z-10 scale-95 opacity-0 transition-all duration-200">
         <div class="flex items-center gap-3 mb-4 text-rose-500">
           <div class="p-2.5 bg-rose-500/10 rounded-xl shrink-0">
             <i data-lucide="shield-alert" class="w-5 h-5"></i>
@@ -576,7 +562,7 @@
         
         <div class="space-y-3">
           <div class="relative">
-            <input type="password" id="prompt-password-input" placeholder="Enter Master Password" class="w-full bg-slate-100 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-sky-505 text-slate-700 dark:text-white font-mono" />
+            <input type="password" id="prompt-password-input" placeholder="Enter Master Password" class="w-full bg-slate-100 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-sky-500 text-slate-700 dark:text-white font-mono" />
             <button id="btn-toggle-prompt-password" class="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-sky-500 rounded-lg">
               <i data-lucide="eye" class="w-4 h-4"></i>
             </button>
@@ -586,7 +572,7 @@
 
         <div class="mt-6 flex items-center justify-end gap-2.5">
           <button id="btn-password-prompt-cancel" class="px-4 py-2 text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold rounded-xl transition-colors">Cancel</button>
-          <button id="btn-password-prompt-submit" class="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl active:scale-95 transition-all shadow-md">Unlock Vault</button>
+          <button id="btn-password-prompt-submit" class="px-5 py-2 bg-m3-btn-primary-bg text-m3-btn-primary-text hover:brightness-95 dark:hover:brightness-110 font-semibold rounded-xl active:scale-95 transition-all shadow-md shadow-m3-primary/10">Unlock Vault</button>
         </div>
       </div>
     </div>
