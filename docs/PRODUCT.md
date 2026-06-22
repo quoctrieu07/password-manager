@@ -11,8 +11,6 @@ Thị trường quản lý mật khẩu hiện nay đang bị chia rẽ giữa h
 
 ### Tầm nhìn
 
-> "Trở thành một giải pháp quản lý mật khẩu **Tối giản – Riêng tư tuyệt đối – Truy cập vạn năng**."
-
 Dự án hướng tới việc bắc một cây cầu hoàn hảo giữa sự an toàn của Local và sự tiện lợi của Cloud, tái định nghĩa cách người dùng bảo vệ danh tính số:
 
 * **Hybrid On/Offline hoàn chỉnh:** Giải quyết triệt để bài toán của các dự án bị bỏ hoang. Ứng dụng hỗ trợ cơ chế hoạt động Offline thuần túy nhưng vẫn tích hợp khả năng đồng bộ Cloud chuẩn hóa, hiện đại, giúp người dùng không bị cô lập dữ liệu trên một thiết bị.
