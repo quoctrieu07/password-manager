@@ -299,7 +299,7 @@ Dù dự án được mở rộng sâu về tính năng, cấu trúc cốt lõi 
 
 * **User Story 6: Bản địa hóa ngôn ngữ**
 * *Là một* người dùng không thành thạo tiếng Anh,
-* *Tôi muốn* có thể chuyển đổi toàn bộ giao diện sang tiếng Việt (hoặc các ngôn ngữ khác) một cách dễ dàng,
+* *Tôi muốn* có thể chuyển đổi toàn bộ giao diện sang các ngôn ngữ khác một cách dễ dàng,
 * *Để* tôi có thể hiểu chính xác chức năng của từng nút bấm và thao tác không bị nhầm lẫn.
 
 
